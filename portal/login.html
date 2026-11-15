@@ -39,6 +39,9 @@
   /* top bar */
   .topbar{display:flex;justify-content:space-between;align-items:center;gap:16px;font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:600;letter-spacing:.28em;text-transform:uppercase;color:var(--cream-62)}
   .topbar .members-only{color:var(--orange)}
+  .topbar .top-right{display:flex;align-items:center;gap:16px}
+  .home-link{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:8px 14px;color:var(--cream);text-decoration:none;letter-spacing:.22em}
+  .home-link:hover{border-color:var(--orange);color:var(--orange)}
 
   /* two-column stage */
   .stage{flex:1;display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(32px,5vw,72px);align-items:center;padding:clamp(28px,4vh,48px) 0}
@@ -111,7 +114,7 @@
 <div class="page">
   <header class="topbar">
     <span>REVA University</span>
-    <span class="members-only">Members Only</span>
+    <span class="top-right"><a class="home-link" href="../index.html">&larr; Home</a><span class="members-only">Members Only</span></span>
   </header>
 
   <main class="stage">
