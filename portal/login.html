@@ -59,6 +59,9 @@
   .door-go{margin-left:auto;font-size:20px;color:var(--orange-deep);flex:none}
   .form{margin-top:26px;border-top:1px solid var(--line-soft);padding-top:24px}
   .form[hidden]{display:none}
+  #doorView[hidden]{display:none}
+  .change-door{display:inline-block;margin:0 0 18px;padding:0;background:none;border:0;color:var(--ink-45);font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;cursor:pointer}
+  .change-door:hover{color:var(--orange-deep)}
   .form h2{margin:0 0 4px;font-size:20px;font-weight:800}
   .form h2 .serif-i{font-size:1.15em}
   .form p.hintline{margin:0 0 18px;color:var(--ink-62);font-size:14px}
@@ -87,6 +90,7 @@
 <div class="grain" aria-hidden="true"></div>
 <main class="wrap">
   <div class="card">
+    <div id="doorView">
     <p class="kicker">REVA University &middot; Bengaluru</p>
     <h1>Welcome <em>backstage.</em></h1>
     <p class="sub">Pick your door to sign in to the <b>REVA Fashion Club Portal</b>. Each door only opens for its own accounts &mdash; a member account cannot sign in through the Official door, and only the Admin can use the Admin door.</p>
@@ -108,8 +112,10 @@
         <span class="door-go" aria-hidden="true">&rarr;</span>
       </button>
     </div>
+    </div>
 
     <form class="form" id="signInForm" hidden novalidate>
+      <button class="change-door" type="button" id="changeDoorBtn">&larr; Change door</button>
       <h2 id="formTitle">Member <span class="serif-i">sign in</span></h2>
       <p class="hintline" id="formHint">Enter your login ID and password.</p>
       <label for="loginId">Login ID</label>
@@ -134,6 +140,8 @@
   var DOOR_LABELS = { member: "Member", official: "Official", admin: "Admin" };
   var currentDoor = null;
 
+  var doorView = document.getElementById("doorView");
+  var changeDoorBtn = document.getElementById("changeDoorBtn");
   var form = document.getElementById("signInForm");
   var formTitle = document.getElementById("formTitle");
   var signInBtn = document.getElementById("signInBtn");
@@ -158,12 +166,28 @@
     document.querySelectorAll(".door").forEach(function (b) {
       b.setAttribute("aria-pressed", b.getAttribute("data-door") === door ? "true" : "false");
     });
+    // Tapping a door opens the sign-in straight away: doors away, form in.
+    doorView.hidden = true;
     form.hidden = false;
     formTitle.innerHTML = DOOR_LABELS[door] + ' <span class="serif-i">sign in</span>';
     signInBtn.textContent = "Sign in as " + DOOR_LABELS[door];
     hideMsg();
+    window.scrollTo(0, 0);
     loginIdInput.focus();
   }
+
+  function showDoors() {
+    currentDoor = null;
+    document.querySelectorAll(".door").forEach(function (b) {
+      b.setAttribute("aria-pressed", "false");
+    });
+    form.hidden = true;
+    doorView.hidden = false;
+    hideMsg();
+    window.scrollTo(0, 0);
+  }
+
+  changeDoorBtn.addEventListener("click", showDoors);
 
   document.querySelectorAll(".door").forEach(function (b) {
     b.addEventListener("click", function () { selectDoor(b.getAttribute("data-door")); });
