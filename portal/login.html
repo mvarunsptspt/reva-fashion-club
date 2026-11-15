@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<title>Login — REVA Fashion Club Portal</title>
+<meta name="description" content="Sign in to the REVA Fashion Club Portal — members, officials and admin." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,500;1,600&amp;family=Cormorant+Garamond:ital,wght@1,500;1,600&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./config.js"></script>
+<style>
+  :root{
+    --orange:#f26522; --orange-deep:#cf4a0e; --amber:#ff9a3d; --gold:#c9a24b;
+    --thread:linear-gradient(92deg,#f26522 0%,#ff9a3d 48%,#c9a24b 100%);
+    --bg:#f3f1ed; --bg-2:#eae7e0; --surface:#ffffff; --surface-2:#faf8f4;
+    --ink:#12110f; --ink-80:rgba(18,17,15,.80); --ink-62:rgba(18,17,15,.62); --ink-45:rgba(18,17,15,.45);
+    --line:rgba(18,17,15,.14); --line-soft:rgba(18,17,15,.08);
+    --dark:#0d0c0a; --dark-2:#171512; --cream:#f4efe4;
+    --cream-80:rgba(244,239,228,.80); --cream-60:rgba(244,239,228,.60); --cream-40:rgba(244,239,228,.40);
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#100f0d; --bg-2:#171512; --surface:#1a1916; --surface-2:#201e1a;
+      --ink:#f2efe7; --ink-80:rgba(242,239,231,.82); --ink-62:rgba(242,239,231,.64); --ink-45:rgba(242,239,231,.46);
+      --line:rgba(242,239,231,.16); --line-soft:rgba(242,239,231,.09);
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Archivo",system-ui,sans-serif;font-size:16.5px;line-height:1.65;-webkit-font-smoothing:antialiased}
+  a{color:inherit}
+  ::selection{background:var(--orange);color:#fff}
+  :focus-visible{outline:3px solid var(--orange);outline-offset:2px;border-radius:4px}
+  .mono{font-family:"IBM Plex Mono",monospace}
+  .serif-i{font-family:"Cormorant Garamond",Georgia,serif;font-style:italic;font-weight:500}
+  .wrap{min-height:100dvh;display:grid;place-items:center;padding:clamp(14px,3vw,28px);position:relative;overflow:hidden}
+  .wrap::before{content:"";position:absolute;inset:auto 0 0;height:3px;background:var(--thread)}
+  .grain{position:fixed;inset:-50%;width:200%;height:200%;pointer-events:none;z-index:5;opacity:.04;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E")}
+  .card{position:relative;z-index:1;width:min(600px,100%);background:var(--surface);border:1px solid var(--line);border-radius:26px;padding:clamp(26px,5vw,44px);box-shadow:0 30px 60px -28px rgba(30,20,8,.35);overflow:hidden;animation:pop .45s var(--ease)}
+  .card::before{content:"";position:absolute;inset:0 0 auto;height:3px;background:var(--thread)}
+  @keyframes pop{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
+  .kicker{font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:600;letter-spacing:.32em;text-transform:uppercase;color:var(--orange-deep)}
+  h1{font-weight:900;text-transform:uppercase;font-size:clamp(30px,5vw,42px);line-height:1.02;letter-spacing:-.02em;margin:14px 0 10px}
+  h1 em{font-family:"Cormorant Garamond",serif;font-style:italic;font-weight:500;text-transform:none;font-size:1.08em;color:var(--orange-deep)}
+  .sub{margin:0 0 26px;color:var(--ink-62);font-size:15.5px;line-height:1.6;max-width:460px}
+  .sub b{color:var(--ink)}
+  .doors{display:grid;gap:12px}
+  .door{display:flex;align-items:center;gap:16px;width:100%;text-align:left;background:var(--surface-2);border:1px solid var(--line);border-radius:18px;padding:18px 20px;cursor:pointer;font:inherit;color:inherit;transition:transform .3s var(--ease),border-color .25s,box-shadow .25s,background .25s}
+  .door:hover{transform:translateY(-2px);border-color:var(--orange);box-shadow:0 16px 30px -18px rgba(242,101,34,.55)}
+  .door[aria-pressed="true"]{border-color:var(--orange);background:#fff;box-shadow:0 0 0 3px rgba(242,101,34,.18),0 16px 30px -18px rgba(242,101,34,.55)}
+  @media (prefers-color-scheme:dark){.door[aria-pressed="true"]{background:#241f1a}}
+  .door-ic{flex:none;width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:var(--dark);color:var(--amber)}
+  .door b{display:block;font-size:17px;font-weight:800;letter-spacing:-.01em}
+  .door span span{display:block;font-size:13.5px;color:var(--ink-62);line-height:1.45;margin-top:2px}
+  .door-go{margin-left:auto;font-size:20px;color:var(--orange-deep);flex:none}
+  .form{margin-top:26px;border-top:1px solid var(--line-soft);padding-top:24px}
+  .form[hidden]{display:none}
+  .form h2{margin:0 0 4px;font-size:20px;font-weight:800}
+  .form h2 .serif-i{font-size:1.15em}
+  .form p.hintline{margin:0 0 18px;color:var(--ink-62);font-size:14px}
+  label{display:block;font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-62);margin:0 0 7px}
+  input{width:100%;min-height:2.9rem;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);font:inherit;font-size:16px;padding:12px 14px;margin-bottom:6px}
+  input:focus{outline:3px solid var(--orange);outline-offset:1px;border-color:var(--orange)}
+  .field-hint{font-size:12.5px;color:var(--ink-45);margin:0 0 16px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:3rem;border:0;border-radius:999px;padding:13px 26px;background:var(--orange);color:#fff;font:inherit;font-weight:800;font-size:15.5px;letter-spacing:.01em;cursor:pointer;transition:transform .3s var(--ease),box-shadow .25s,background .25s}
+  .btn:hover{transform:translateY(-2px);box-shadow:0 16px 30px -14px rgba(242,101,34,.7)}
+  .btn:active{transform:scale(.97)}
+  .btn[disabled]{opacity:.6;cursor:wait;transform:none;box-shadow:none}
+  .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+  .btn.ghost:hover{box-shadow:none;border-color:var(--orange);color:var(--orange-deep)}
+  .msg{margin:16px 0 0;border-radius:12px;padding:13px 15px;font-size:14px;line-height:1.55;display:none}
+  .msg.show{display:block}
+  .msg.err{background:rgba(200,40,30,.09);border:1px solid rgba(200,40,30,.4);color:#8f1d12}
+  .msg.ok{background:rgba(30,140,70,.09);border:1px solid rgba(30,140,70,.4);color:#145c2e}
+  @media (prefers-color-scheme:dark){.msg.err{color:#ffb3a6}.msg.ok{color:#9fe6b8}}
+  .back{display:block;margin:22px auto 0;background:none;border:0;color:var(--ink-45);font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;cursor:pointer;padding:10px}
+  .back:hover{color:var(--orange-deep)}
+  .foot{margin:26px 0 0;text-align:center;font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-45)}
+  @media (prefers-reduced-motion:reduce){.card{animation:none}.door,.btn{transition:none}}
+</style>
+</head>
+<body>
+<div class="grain" aria-hidden="true"></div>
+<main class="wrap">
+  <div class="card">
+    <p class="kicker">REVA University &middot; Bengaluru</p>
+    <h1>Welcome <em>backstage.</em></h1>
+    <p class="sub">Pick your door to sign in to the <b>REVA Fashion Club Portal</b>. Each door only opens for its own accounts &mdash; a member account cannot sign in through the Official door, and only the Admin can use the Admin door.</p>
+
+    <div class="doors" role="group" aria-label="Choose your login door">
+      <button type="button" class="door" data-door="member" aria-pressed="false">
+        <span class="door-ic" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg></span>
+        <span><b>Member Login</b><span>Members &amp; core members &mdash; your dashboard, updates and show calls.</span></span>
+        <span class="door-go" aria-hidden="true">&rarr;</span>
+      </button>
+      <button type="button" class="door" data-door="official" aria-pressed="false">
+        <span class="door-ic" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3l2.5 5.5L20 9.5l-4 4 1 5.8L12 16.5 7 19.3 8 13.5 4 9.5l5.5-1z"/></svg></span>
+        <span><b>Official Login</b><span>President &amp; office bearers &mdash; manage members, shows and announcements.</span></span>
+        <span class="door-go" aria-hidden="true">&rarr;</span>
+      </button>
+      <button type="button" class="door" data-door="admin" aria-pressed="false">
+        <span class="door-ic" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="4" y="10.5" width="16" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg></span>
+        <span><b>Admin Login</b><span>Admin only &mdash; create accounts and assign club roles.</span></span>
+        <span class="door-go" aria-hidden="true">&rarr;</span>
+      </button>
+    </div>
+
+    <form class="form" id="signInForm" hidden novalidate>
+      <h2 id="formTitle">Member <span class="serif-i">sign in</span></h2>
+      <p class="hintline" id="formHint">Enter your login ID and password.</p>
+      <label for="loginId">Login ID</label>
+      <input id="loginId" name="loginId" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="e.g. varun01" required />
+      <p class="field-hint">Letters and numbers only &mdash; no spaces.</p>
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Your password" required />
+      <p class="field-hint">First time signing in? Your temporary password is your mobile number. Change it after your first sign-in, from Settings inside the portal.</p>
+      <button class="btn" type="submit" id="signInBtn">Sign in as Member</button>
+      <div class="msg" id="signInMsg" role="alert"></div>
+    </form>
+
+    <button class="back" type="button" onclick="location.href='../index.html'">&larr; Back to the club website</button>
+    <p class="foot">REVA Fashion Club &middot; No public sign-up &mdash; accounts are created by the Admin or club officials.</p>
+  </div>
+</main>
+
+<script>
+(function () {
+  var cfg = window.RFC_CONFIG;
+  var client = supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_PUBLISHABLE_KEY);
+  var DOOR_LABELS = { member: "Member", official: "Official", admin: "Admin" };
+  var currentDoor = null;
+
+  var form = document.getElementById("signInForm");
+  var formTitle = document.getElementById("formTitle");
+  var signInBtn = document.getElementById("signInBtn");
+  var msg = document.getElementById("signInMsg");
+  var loginIdInput = document.getElementById("loginId");
+  var passwordInput = document.getElementById("password");
+
+  function showMsg(text, kind) {
+    msg.textContent = text;
+    msg.className = "msg show " + (kind || "err");
+  }
+  function hideMsg() { msg.textContent = ""; msg.className = "msg"; }
+
+  // Login ID rule: letters and numbers only — strip spaces and symbols as typed.
+  loginIdInput.addEventListener("input", function () {
+    var clean = loginIdInput.value.replace(/[^A-Za-z0-9]/g, "");
+    if (clean !== loginIdInput.value) loginIdInput.value = clean;
+  });
+
+  function selectDoor(door) {
+    currentDoor = door;
+    document.querySelectorAll(".door").forEach(function (b) {
+      b.setAttribute("aria-pressed", b.getAttribute("data-door") === door ? "true" : "false");
+    });
+    form.hidden = false;
+    formTitle.innerHTML = DOOR_LABELS[door] + ' <span class="serif-i">sign in</span>';
+    signInBtn.textContent = "Sign in as " + DOOR_LABELS[door];
+    hideMsg();
+    loginIdInput.focus();
+  }
+
+  document.querySelectorAll(".door").forEach(function (b) {
+    b.addEventListener("click", function () { selectDoor(b.getAttribute("data-door")); });
+  });
+
+  // Already signed in? Go straight to the portal.
+  client.auth.getSession().then(function (res) {
+    if (res.data && res.data.session) location.href = "./app.html";
+  });
+
+  // A door can be pre-selected with ?door=member | official | admin
+  var preset = new URLSearchParams(location.search).get("door");
+  if (preset && DOOR_LABELS[preset]) selectDoor(preset);
+
+  form.addEventListener("submit", async function (e) {
+    e.preventDefault();
+    hideMsg();
+    var loginId = loginIdInput.value.trim();
+    var password = passwordInput.value;
+    if (!loginId) { showMsg("Enter your login ID."); loginIdInput.focus(); return; }
+    if (!password) { showMsg("Enter your password."); passwordInput.focus(); return; }
+    signInBtn.disabled = true;
+    signInBtn.textContent = "Signing in…";
+    try {
+      // Step 1: turn the login ID into the email the account was created with.
+      var lookup = await client.rpc("get_email_for_login", { p_login_id: loginId });
+      if (lookup.error) throw lookup.error;
+      if (!lookup.data) {
+        showMsg("No account with login ID “" + loginId + "”. Check the spelling, or ask the Admin to create your account.");
+        return;
+      }
+      // Step 2: sign in with that email + password.
+      var signIn = await client.auth.signInWithPassword({ email: lookup.data, password: password });
+      if (signIn.error) {
+        if (/invalid login credentials/i.test(signIn.error.message)) {
+          showMsg("Wrong password for this login ID. If this is your first sign-in, your temporary password is your mobile number.");
+        } else {
+          showMsg("Could not sign in: " + signIn.error.message);
+        }
+        return;
+      }
+      // Step 3: door enforcement — the account's door must match the chosen door.
+      var me = await client.from("profiles").select("id, role, door").eq("id", signIn.data.user.id).single();
+      if (me.error || !me.data) {
+        await client.auth.signOut();
+        showMsg("Your account is not set up yet. Please contact the Admin.");
+        return;
+      }
+      if (me.data.door !== currentDoor) {
+        await client.auth.signOut();
+        showMsg("This account belongs to the " + DOOR_LABELS[me.data.door] + " door. Please use the " + DOOR_LABELS[me.data.door] + " Login instead.");
+        return;
+      }
+      location.href = "./app.html";
+    } catch (err) {
+      showMsg("Something went wrong: " + (err.message || err));
+    } finally {
+      signInBtn.disabled = false;
+      signInBtn.textContent = "Sign in as " + DOOR_LABELS[currentDoor || "member"];
+    }
+  });
+})();
+</script>
+</body>
+</html>
