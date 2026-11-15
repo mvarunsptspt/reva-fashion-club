@@ -20,12 +20,21 @@
     core_member: "Core Member",
     president: "President",
     vice_president: "Vice President",
-    official: "Official",
-    admin: "Admin"
+    secretary: "Secretary",
+    treasurer: "Treasurer",
+    creative_director: "Creative Director",
+    head_of_design: "Head of Design",
+    runway_lead: "Runway Lead",
+    media_lead: "Media & Photography Lead",
+    events_lead: "Events & Sponsorship Lead",
+    second_admin: "Second Admin",
+    admin: "Main Admin"
   };
   var DOOR_LABELS = { member: "Member", official: "Official", admin: "Admin" };
-  var OFFICE_ROLES = ["president", "vice_president", "official", "admin"];
-  var ALL_ROLES = ["member", "core_member", "president", "vice_president", "official", "admin"];
+  // The offices: every role that counts as a club official (Official door,
+  // can create Member / Core Member accounts, can post announcements).
+  var OFFICE_ROLES = ["president", "vice_president", "secretary", "treasurer", "creative_director", "head_of_design", "runway_lead", "media_lead", "events_lead"];
+  var ALL_ROLES = ["admin", "second_admin", "president", "vice_president", "secretary", "treasurer", "creative_director", "head_of_design", "runway_lead", "media_lead", "events_lead", "core_member", "member"];
 
   var me = null;          // my profile row
   var directory = [];     // public member list (list_members)
@@ -58,11 +67,21 @@
     if (days < 7) return days + " day" + (days > 1 ? "s" : "") + " ago";
     return d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
   }
-  function isAdmin() { return me && me.role === "admin"; }
-  function isPrivileged() { return me && (me.role === "admin" || me.role === "president" || me.role === "vice_president"); }
+  // Main Admin = Varun (role 'admin'). Second Admin = role 'second_admin'.
+  // Both admin levels sign in through the Admin door; only the Main Admin
+  // can create another Main Admin, and the Main Admin account can never
+  // be removed or have its role changed.
+  function isMainAdmin() { return me && me.role === "admin"; }
+  function isAdmin() { return me && (me.role === "admin" || me.role === "second_admin"); }
+  function isPrivileged() { return me && (me.role === "admin" || me.role === "second_admin" || me.role === "president" || me.role === "vice_president"); }
   function isOfficialOrAbove() { return me && (me.role !== "member" && me.role !== "core_member"); }
-  function canCreate() { return isAdmin() || (me && (me.role === "president" || me.role === "vice_president" || me.role === "official")); }
+  function canCreate() { return isAdmin() || (me && OFFICE_ROLES.indexOf(me.role) !== -1); }
   function canPostAnnouncement() { return isOfficialOrAbove(); }
+  function doorForRole(role) {
+    if (role === "admin" || role === "second_admin") return "admin";
+    if (role === "member" || role === "core_member") return "member";
+    return "official";
+  }
 
   /* Where magic-link emails should land: the portal shell (app.html),
      computed from this page's own address so it is always right — on
@@ -157,7 +176,7 @@
       return '<div class="row-item">' +
         '<div class="avatar" aria-hidden="true">' + esc(initials(p.name)) + "</div>" +
         '<div class="body"><b>' + esc(p.name) + "</b> " +
-        '<span class="chip' + (p.role === "admin" ? " orange" : p.role === "president" || p.role === "vice_president" ? "" : " ghost") + '">' + esc(ROLE_LABELS[p.role] || p.role) + "</span>" +
+        '<span class="chip' + (p.role === "admin" || p.role === "second_admin" ? " orange" : p.role === "president" || p.role === "vice_president" ? "" : " ghost") + '">' + esc(ROLE_LABELS[p.role] || p.role) + "</span>" +
         '<div class="meta">Login ID: ' + esc(p.login_id) + " &middot; " + esc(DOOR_LABELS[p.door]) + " door" + (self ? " &middot; This is you" : "") + "</div>" +
         '<div class="contact-line" id="contact-' + esc(p.id) + '"></div>' +
         "</div>" +
@@ -363,13 +382,20 @@
   function setupCreateForm() {
     if (!canCreate()) return;
     var roleSel = $("cRole");
-    var roles = isAdmin() ? ALL_ROLES : ["member", "core_member"];
+    // Main Admin: any role, including another Main Admin.
+    // Second Admin: any role except Main Admin.
+    // Office holders: Member / Core Member only.
+    var roles = isMainAdmin() ? ALL_ROLES
+      : isAdmin() ? ALL_ROLES.filter(function (r) { return r !== "admin"; })
+      : ["member", "core_member"];
     roleSel.innerHTML = roles.map(function (r) {
       return '<option value="' + r + '">' + ROLE_LABELS[r] + "</option>";
     }).join("");
-    $("roleHint").textContent = isAdmin()
-      ? "Admin: you can assign any role, including offices."
-      : "Officials can only create Member / Core Member accounts. Offices are assigned by the Admin.";
+    $("roleHint").textContent = isMainAdmin()
+      ? "Main Admin: you can assign any role, including another Main Admin."
+      : isAdmin()
+      ? "Second Admin: you can create Second Admins and any other role, except Main Admin."
+      : "Office holders can only create Member / Core Member accounts. Other roles are assigned by the Admins.";
 
     // Login ID rule: letters and numbers only — strip spaces and symbols as typed.
     $("cLoginId").addEventListener("input", function () {
@@ -400,8 +426,12 @@
       if (!loginId) { showMsg($("createMsg"), "Enter a login ID (letters and numbers only, no spaces)."); return; }
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showMsg($("createMsg"), "Enter a valid email address."); return; }
       if (mobile.length < 10) { showMsg($("createMsg"), "Enter the full mobile number (at least 10 digits)."); return; }
+      if (role === "admin" && !isMainAdmin()) {
+        showMsg($("createMsg"), "Only the Main Admin can create another Main Admin.");
+        return;
+      }
       if (!isAdmin() && OFFICE_ROLES.indexOf(role) !== -1) {
-        showMsg($("createMsg"), "Only the Admin can assign offices. Choose Member or Core Member.");
+        showMsg($("createMsg"), "Only the Admins can assign offices. Choose Member or Core Member.");
         return;
       }
       $("createBtn").disabled = true;
@@ -454,7 +484,7 @@
         showMsg($("createMsg"),
           "Account created for " + name + " (" + ROLE_LABELS[role] + "). Login ID: " + loginId +
           ". Temporary password: the mobile number. Tell the member to sign in through the " +
-          DOOR_LABELS[role === "admin" ? "admin" : (role === "member" || role === "core_member" ? "member" : "official")] +
+          DOOR_LABELS[doorForRole(role)] +
           " door, then change the password.", "ok");
         $("createForm").reset();
         $("cTempPass").value = "";
@@ -524,7 +554,7 @@
     $("pvRole").textContent = ROLE_LABELS[role] || "Member";
     $("pvMeta").innerHTML =
       "Login ID: " + esc(loginId || "—") + "<br />Email: " + esc(email || "—") + "<br />Mobile: " + esc(mobile || "—");
-    var door = role === "admin" ? "admin" : (role === "member" || role === "core_member" ? "member" : "official");
+    var door = doorForRole(role);
     $("pvDoor").innerHTML = "Signs in through the <b>" + DOOR_LABELS[door] + " Login</b> door.";
     var title = document.querySelector("#tab-create h1.page");
     if (title) title.innerHTML = "Create a <em>" + esc(ROLE_LABELS[role] || "Member") + " account</em>";
@@ -542,13 +572,21 @@
     var rows = res.data || [];
     if (!rows.length) { $("adminList").innerHTML = '<p class="empty">No accounts yet.</p>'; return; }
     $("adminList").innerHTML = rows.map(function (p) {
-      var opts = ALL_ROLES.map(function (r) {
+      var viewerIsMain = isMainAdmin();
+      var canChangeRole = viewerIsMain ? p.role !== "admin" : (p.role !== "admin" && p.role !== "second_admin");
+      var canRemove = p.role !== "admin" && (p.role !== "second_admin" || viewerIsMain);
+      var opts = ALL_ROLES.filter(function (r) { return viewerIsMain || r !== "admin"; }).map(function (r) {
         return '<option value="' + r + '"' + (p.role === r ? " selected" : "") + ">" + ROLE_LABELS[r] + "</option>";
       }).join("");
+      var rowNote = p.role === "admin"
+        ? '<span class="muted">Main Admin — this account cannot be removed, and its role cannot be changed.</span>'
+        : (p.role === "second_admin" && !viewerIsMain)
+        ? '<span class="muted">Only the Main Admin can change or remove a Second Admin.</span>'
+        : "";
       return '<div class="row-item">' +
         '<div class="avatar" aria-hidden="true">' + esc(initials(p.name)) + "</div>" +
         '<div class="body"><b>' + esc(p.name) + "</b> " +
-        '<span class="chip' + (p.role === "admin" ? " orange" : "") + '">' + esc(ROLE_LABELS[p.role] || p.role) + "</span> " +
+        '<span class="chip' + (p.role === "admin" || p.role === "second_admin" ? " orange" : "") + '">' + esc(ROLE_LABELS[p.role] || p.role) + "</span> " +
         (p.email_verified ? '<span class="chip ghost">Email verified</span>' : '<span class="chip ghost">Email not verified</span>') +
         '<div class="meta">Login ID: ' + esc(p.login_id) + " &middot; " + esc(DOOR_LABELS[p.door]) + " door &middot; Added by " +
         (p.added_by_role === "admin" ? "Admin" : esc(p.added_by) + " (" + esc(ROLE_LABELS[p.added_by_role] || p.added_by_role) + ")") +
@@ -556,10 +594,9 @@
         '<div class="contact-line">Email: ' + esc(p.email || "—") + "  •  Mobile: " + esc(p.mobile || "—") + "</div>" +
         '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center">' +
         '<label style="margin:0" for="role-' + esc(p.id) + '">Role</label>' +
-        '<select id="role-' + esc(p.id) + '" data-role-for="' + esc(p.id) + '" style="width:auto;margin:0">' + opts + "</select>" +
-        (p.role === "admin"
-          ? '<span class="muted">This is the Admin account.</span>'
-          : '<button class="btn ghost small" type="button" data-remove="' + esc(p.id) + '" data-remove-name="' + esc(p.name) + '">Remove account</button>') +
+        '<select id="role-' + esc(p.id) + '" data-role-for="' + esc(p.id) + '" style="width:auto;margin:0"' + (canChangeRole ? "" : " disabled") + '>' + opts + "</select>" +
+        rowNote +
+        (canRemove ? '<button class="btn ghost small" type="button" data-remove="' + esc(p.id) + '" data-remove-name="' + esc(p.name) + '">Remove account</button>' : "") +
         "</div></div></div>";
     }).join("") + '<p class="muted" style="margin-top:14px">Removing an account deletes its portal profile. Also delete the same user in Supabase Dashboard → Authentication → Users, otherwise the email stays registered and cannot be used for a new account.</p>';
     document.querySelectorAll("[data-role-for]").forEach(function (sel) {
