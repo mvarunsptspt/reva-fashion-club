@@ -415,10 +415,25 @@
   details .a>div{overflow:hidden}
   details .a p{margin:0;padding:0 20px 19px;color:var(--ink-62);font-size:15px}
 
+  /* contact / privacy / terms — same type scale as the rest of the site */
+  .info-sec{padding-block:clamp(48px,6vw,76px)}
+  .info-sec p:not(.kicker):not(.lede){max-width:760px;color:var(--ink-62);font-size:16px;line-height:1.75;margin:0 0 14px}
+  .info-sec p:not(.kicker):not(.lede) b{color:var(--ink)}
+  .info-sec p:not(.kicker):not(.lede) a{color:var(--orange-deep);text-decoration:underline;text-underline-offset:3px}
+  .contact-card{margin:34px 0 0;max-width:660px;border:1px solid var(--line);border-radius:18px;background:var(--surface);padding:26px 28px}
+  .contact-card h3{margin:0 0 10px;font-size:18px;font-weight:800;letter-spacing:-.01em}
+  .contact-card address{font-style:normal;color:var(--ink-62);font-size:15.5px;line-height:1.7;margin:0 0 18px}
+  .contact-row{display:flex;gap:14px;align-items:baseline;border-top:1px solid var(--line-soft);padding:12px 0 0;margin:0 0 12px;font-size:15px}
+  .contact-row:last-child{margin-bottom:0}
+  .contact-row>span:first-child{flex:none;width:130px;font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-45)}
+  .contact-row a{color:var(--orange-deep)}
+  @media (max-width:560px){.contact-row{flex-direction:column;gap:2px}.contact-row>span:first-child{width:auto}}
+
   /* footer */
   footer{background:var(--dark);color:var(--cream-60);padding:68px 0 34px;margin-top:clamp(64px,9vw,110px);position:relative;overflow:hidden}
   footer::before{content:"";position:absolute;inset:14px 0 auto;height:1px;background-image:linear-gradient(90deg,rgba(255,154,61,.5) 55%,transparent 45%);background-size:11px 1px}
-  .foot-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:36px;position:relative}
+  .foot-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:36px;position:relative}
+  @media (max-width:1080px){.foot-grid{grid-template-columns:1fr 1fr}}
   @media (max-width:820px){.foot-grid{grid-template-columns:1fr}}
   footer h4{color:#fff;font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:11px;letter-spacing:.28em;text-transform:uppercase;margin:0 0 15px}
   footer p,footer li{font-size:14.5px}
@@ -884,7 +899,57 @@
       <details class="rv d2"><summary>How much time does the club take each week?</summary><div class="a"><div><p>Typically 2–3 hours a week for workshops and vertical meets, rising in the two weeks before a show. Show weeks are intense — and unforgettable.</p></div></div></details>
       <details class="rv d2"><summary>Do I need my own camera, makeup kit or sewing machine?</summary><div class="a"><div><p>No. The club shares equipment across verticals, and shoots are planned around what the team has. Bring what you own; borrow the rest.</p></div></div></details>
       <details class="rv d3"><summary>When do auditions happen?</summary><div class="a"><div><p>At the start of every semester. Fill the interest form above and keep an eye on university notice boards and student club announcements for the exact dates.</p></div></div></details>
+      <p class="kicker rv d1" style="margin-top:38px"><i></i>Your portal account</p>
+      <details class="rv d1"><summary>How do I get a login ID?</summary><div class="a"><div><p>Only the Admin or a club official can create your account. Ask the Admin or the President — there is no self sign-up. Once your account is created, you will receive your login ID and a temporary password.</p></div></div></details>
+      <details class="rv d1"><summary>I forgot my password — what do I do?</summary><div class="a"><div><p>Your temporary password on your first sign-in is your mobile number. After signing in, change it from Settings inside the portal. If you are locked out, ask the Admin to reset it for you.</p></div></div></details>
+      <details class="rv d2"><summary>Who can see my email and phone number?</summary><div class="a"><div><p>Only the President, the Vice Presidents and the Admin. Other officials and members cannot see your contact details.</p></div></div></details>
+      <details class="rv d2"><summary>Can I sign up by myself?</summary><div class="a"><div><p>No — there is no public sign-up. Accounts are created by the Admin or by club officials only.</p></div></div></details>
     </div>
+  </div>
+</section>
+
+<div class="container" style="padding-block:28px 36px"><a class="next-stitch rv" href="#contact" style="margin-top:0"><i></i>Next — Find us on campus ↓</a></div>
+<!-- ================= CONTACT ================= -->
+<section id="contact" class="info-sec">
+  <div class="container">
+    <p class="kicker rv"><i></i>Find us</p>
+    <h2 class="title rv d1">Contact the <em>club</em></h2>
+    <p class="lede rv d1">The REVA Fashion Club is a student club of REVA University, Bengaluru. The fastest way to reach the club is through the portal — sign in and send a message from the Messages tab.</p>
+    <div class="contact-card rv d2">
+      <h3>On campus</h3>
+      <address>REVA University<br />Rukmini Knowledge Park, Kattigenahalli,<br />Yelahanka, Bengaluru — 560 064, Karnataka, India</address>
+      <p class="contact-row"><span>University website</span><a href="https://www.reva.edu.in" target="_blank" rel="noopener">www.reva.edu.in</a></p>
+      <p class="contact-row"><span>Members</span><span>Message through the portal — Login &rarr; Messages</span></p>
+      <p class="contact-row"><span>Joining</span><span>There is no public sign-up — accounts are created by the Admin or club officials.</span></p>
+    </div>
+  </div>
+</section>
+
+<div class="container" style="padding-block:28px 36px"><a class="next-stitch rv" href="#privacy" style="margin-top:0"><i></i>Next — Privacy policy ↓</a></div>
+<!-- ================= PRIVACY POLICY ================= -->
+<section id="privacy" class="info-sec">
+  <div class="container">
+    <p class="kicker rv"><i></i>The small print</p>
+    <h2 class="title rv d1">Privacy <em>policy</em></h2>
+    <p class="rv d1">The REVA Fashion Club portal collects only what a member account needs: your name, login ID, email address and mobile number. This information is collected when the Admin or a club official creates your account — there is no public sign-up form.</p>
+    <p class="rv d1">Your email address and mobile number are visible only to the President, the Vice Presidents and the Admin. Other officials and members cannot see your contact details. Your own record is always visible to you.</p>
+    <p class="rv d2">We use your details only to run the club — show calls, announcements, and messages between members and officials. We do not share member details outside the club, and we do not sell them or use them for advertising.</p>
+    <p class="rv d2">Photos and videos from club shows, shoots and events may appear in the lookbook on this website and in club announcements. If you would like a photo of you taken down, message the Admin through the portal and it will be removed.</p>
+    <p class="rv d2">If you leave the club, ask the Admin to remove your account, and your contact details will be removed with it.</p>
+  </div>
+</section>
+
+<div class="container" style="padding-block:28px 36px"><a class="next-stitch rv" href="#terms" style="margin-top:0"><i></i>Next — Terms of service ↓</a></div>
+<!-- ================= TERMS OF SERVICE ================= -->
+<section id="terms" class="info-sec">
+  <div class="container">
+    <p class="kicker rv"><i></i>The small print</p>
+    <h2 class="title rv d1">Terms of <em>service</em></h2>
+    <p class="rv d1">The REVA Fashion Club website and portal are run by the club for its members, officials and the Admin. By using the portal you agree to use it only for club activities — shows, rehearsals, announcements and messages between members.</p>
+    <p class="rv d1">Accounts are created by the Admin or by club officials only, and there is no public sign-up. Your login ID and password are yours alone — do not share them, and change your temporary password (your mobile number) after your first sign-in.</p>
+    <p class="rv d2">Only the Admin can assign club roles such as President and Vice President. Officials may create member accounts, but cannot hand out offices. The Admin may remove accounts that break club rules or are no longer active.</p>
+    <p class="rv d2">Photos and videos taken at club shows and events may be published in the lookbook and in club announcements. Be kind in messages and announcements — anything harassing, hateful or unrelated to the club may be removed, and the account behind it may lose access.</p>
+    <p class="rv d2">These terms may be updated as the club grows; the latest version is always the one on this page.</p>
   </div>
 </section>
 
@@ -914,6 +979,16 @@
           <li><a href="#gallery">The lookbook</a></li>
           <li><a href="#events">Events</a></li>
           <li><a href="#join">Join / Auditions</a></li>
+          <li><a href="#contact">Contact</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Club Info</h4>
+        <ul>
+          <li><a href="#contact">Contact</a></li>
+          <li><a href="#faq">FAQ</a></li>
+          <li><a href="#privacy">Privacy Policy</a></li>
+          <li><a href="#terms">Terms of Service</a></li>
         </ul>
       </div>
       <div>
@@ -926,7 +1001,6 @@
     </div>
     <div class="foot-bottom">
       <span>© REVA Fashion Club · REVA University, Bengaluru</span>
-      <span>Stitched with love — and leftover sequins ◆</span>
     </div>
   </div>
 </footer>
