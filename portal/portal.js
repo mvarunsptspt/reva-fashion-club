@@ -64,6 +64,16 @@
   function canCreate() { return isAdmin() || (me && (me.role === "president" || me.role === "vice_president" || me.role === "official")); }
   function canPostAnnouncement() { return isOfficialOrAbove(); }
 
+  /* Where magic-link emails should land: the portal shell (app.html),
+     computed from this page's own address so it is always right — on
+     GitHub Pages the site lives under /reva-fashion-club/, and on a
+     future custom domain the same code still works. Without this,
+     Supabase falls back to the dashboard's Site URL, which is what
+     sent the link to a dead address. */
+  function portalAppUrl() {
+    return location.origin + location.pathname.replace(/\/[^/]*$/, "") + "/app.html";
+  }
+
   /* ---------------- boot: session + profile ---------------- */
   async function boot() {
     var sess = await client.auth.getSession();
@@ -316,7 +326,7 @@
   async function sendOtpToMe() {
     if (otpSentForMe) return;
     otpSentForMe = true;
-    var res = await client.auth.signInWithOtp({ email: me.email, options: { shouldCreateUser: false } });
+    var res = await client.auth.signInWithOtp({ email: me.email, options: { shouldCreateUser: false, emailRedirectTo: portalAppUrl() } });
     if (res.error) showMsg($("otpMsg"), "Could not send the code: " + res.error.message);
   }
   function setupOtp() {
@@ -495,7 +505,7 @@
 
   async function sendOtpToNewAccount() {
     if (!newAccount) return;
-    var res = await iso.auth.signInWithOtp({ email: newAccount.email, options: { shouldCreateUser: false } });
+    var res = await iso.auth.signInWithOtp({ email: newAccount.email, options: { shouldCreateUser: false, emailRedirectTo: portalAppUrl() } });
     if (res.error) showMsg($("newOtpMsg"), "Could not send the code: " + res.error.message + " The account still works — the member can verify from their dashboard later.");
   }
 
