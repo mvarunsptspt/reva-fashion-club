@@ -187,7 +187,7 @@
         "</div>" +
         '<div class="actions"><button class="btn ghost small" type="button" data-contact="' + esc(p.id) + '">' +
         (self ? "My contact" : "Show contact") + "</button>" +
-        (isPrivileged() ? '<button class="btn ghost small" type="button" data-mobile="' + esc(p.id) + '">Update mobile</button>' : "") + "</div>" +
+        (isPrivileged() && (p.role !== "admin" || self) ? '<button class="btn ghost small" type="button" data-mobile="' + esc(p.id) + '">Update mobile</button>' : "") + "</div>" +
         "</div>";
     }).join("");
     document.querySelectorAll("[data-contact]").forEach(function (btn) {
@@ -213,7 +213,7 @@
     if (!c.email && !c.mobile) {
       box.textContent = "Contact details are only visible to the President, Vice Presidents and the Admin.";
     } else {
-      box.textContent = "Email: " + c.email + "  •  Mobile: " + c.mobile;
+      box.textContent = "Email: " + (c.email || "—") + "  •  Mobile: " + (c.mobile || "—");
     }
     btn.onclick = function () { box.textContent = ""; btn.textContent = "Show contact"; btn.onclick = null; };
   }
