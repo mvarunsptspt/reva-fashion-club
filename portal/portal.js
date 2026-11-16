@@ -186,11 +186,15 @@
         '<div class="contact-line" id="contact-' + esc(p.id) + '"></div>' +
         "</div>" +
         '<div class="actions"><button class="btn ghost small" type="button" data-contact="' + esc(p.id) + '">' +
-        (self ? "My contact" : "Show contact") + "</button></div>" +
+        (self ? "My contact" : "Show contact") + "</button>" +
+        (isPrivileged() ? '<button class="btn ghost small" type="button" data-mobile="' + esc(p.id) + '">Update mobile</button>' : "") + "</div>" +
         "</div>";
     }).join("");
     document.querySelectorAll("[data-contact]").forEach(function (btn) {
       btn.addEventListener("click", function () { revealContact(btn.getAttribute("data-contact"), btn); });
+    });
+    document.querySelectorAll("[data-mobile]").forEach(function (btn) {
+      btn.addEventListener("click", function () { startMobileEdit(btn.getAttribute("data-mobile")); });
     });
   }
 
@@ -212,6 +216,56 @@
       box.textContent = "Email: " + c.email + "  •  Mobile: " + c.mobile;
     }
     btn.onclick = function () { box.textContent = ""; btn.textContent = "Show contact"; btn.onclick = null; };
+  }
+
+  // Update a member's mobile number — only the Main Admin, Second Admin,
+  // President and Vice Presidents ever see the button (renderDirectory
+  // only adds it for isPrivileged), and the database function checks the
+  // role again. Edits inline in the member's row: the current number is
+  // loaded first, then Save writes just the mobile column.
+  async function startMobileEdit(id) {
+    var box = $("contact-" + id);
+    var contactBtn = document.querySelector('[data-contact="' + id + '"]');
+    var res = await client.rpc("get_member_contact", { p_id: id });
+    if (res.error || !res.data || !res.data.length || !res.data[0].mobile) {
+      box.textContent = "Could not load the current mobile number.";
+      return;
+    }
+    box.innerHTML = "";
+    var input = document.createElement("input");
+    input.type = "tel"; input.value = res.data[0].mobile;
+    input.setAttribute("aria-label", "New mobile number");
+    input.style.marginBottom = "8px";
+    var save = document.createElement("button");
+    save.className = "btn small"; save.type = "button"; save.textContent = "Save";
+    var cancel = document.createElement("button");
+    cancel.className = "btn ghost small"; cancel.type = "button"; cancel.textContent = "Cancel";
+    cancel.style.marginLeft = "8px";
+    var err = document.createElement("div");
+    err.className = "muted";
+    box.appendChild(input); box.appendChild(save); box.appendChild(cancel); box.appendChild(err);
+    if (contactBtn) { contactBtn.textContent = "Show contact"; contactBtn.onclick = null; }
+    input.focus(); input.select();
+    cancel.addEventListener("click", function () { box.textContent = ""; });
+    save.addEventListener("click", async function () {
+      var value = input.value.replace(/[^0-9]/g, "");
+      if (value.length < 10) { err.textContent = "Enter the full mobile number (at least 10 digits)."; return; }
+      save.disabled = true; save.textContent = "Saving…";
+      var done = await client.rpc("update_member_mobile", { p_id: id, p_mobile: value });
+      save.disabled = false; save.textContent = "Save";
+      if (done.error) {
+        err.textContent = /duplicate key/i.test(done.error.message)
+          ? "That mobile number is already registered to another member."
+          : "Could not update: " + done.error.message;
+        return;
+      }
+      box.textContent = "Mobile updated to " + value + ".";
+      if (id === me.id) {
+        me.mobile = value;
+        $("setContact").textContent = "Login ID: " + me.login_id + "  •  " + me.email + "  •  " + me.mobile;
+      }
+      if (isAdmin()) await refreshAdminList();
+    });
   }
 
   function fillDmRecipients() {
