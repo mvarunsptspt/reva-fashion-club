@@ -40,6 +40,9 @@
   var directory = [];     // public member list (list_members)
   var directoryById = {};
   var otpSentForMe = false;
+  var adminRows = [];     // full member list (list_members_full), admins only
+  var lastSignins = {};   // id -> last_sign_in_at, Main Admin only
+  var lockdownOn = false; // Main Admin only
 
   /* ---------------- small helpers ---------------- */
   function $(id) { return document.getElementById(id); }
@@ -95,6 +98,21 @@
   function portalAppUrl() {
     return location.origin + location.pathname.replace(/\/[^/]*$/, "") + "/app.html";
   }
+  // The sign-in page, for password-reset emails (the link in the email
+  // lands here, and the page shows a "set a new password" form).
+  function portalLoginUrl() {
+    return location.origin + location.pathname.replace(/\/[^/]*$/, "") + "/login.html";
+  }
+  // Download a file the browser just built (CSV member list / JSON backup).
+  function downloadFile(filename, text, type) {
+    var blob = new Blob([text], { type: type || "text/plain;charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  }
 
   /* ---------------- boot: session + profile ---------------- */
   async function boot() {
@@ -108,6 +126,19 @@
       return;
     }
     me = prof.data;
+    // Suspended accounts cannot use the portal at all.
+    if (me.is_suspended) {
+      await client.auth.signOut();
+      location.href = "./login.html?suspended=1";
+      return;
+    }
+    // Lockdown mode: only the Main Admin stays signed in.
+    var lock = await client.rpc("get_lockdown");
+    if (!lock.error && lock.data === true && me.role !== "admin") {
+      await client.auth.signOut();
+      location.href = "./login.html?locked=1";
+      return;
+    }
     renderIdentity();
     setupTabs();
     setupCreateForm();
@@ -121,6 +152,7 @@
     await refreshAnnouncements();
     if (canViewApplicants()) await refreshApplicants();
     if (isAdmin()) await refreshAdminList();
+    if (isMainAdmin()) { await refreshAuditLog(); await refreshLockdown(); }
   }
 
   function renderIdentity() {
@@ -135,6 +167,8 @@
     if (!canCreate()) $("tabCreate").hidden = true;
     if (!isAdmin()) $("tabAdmin").hidden = true;
     if (!canViewApplicants()) $("tabApplicants").hidden = true;
+    $("tabAudit").hidden = !isMainAdmin();
+    $("mainAdminTools").hidden = !isMainAdmin();
     if (!canPostAnnouncement()) $("announcePostCard").hidden = true;
     if (!me.email_verified) {
       $("verifyNotice").hidden = false;
@@ -295,10 +329,11 @@
     var badge = $("msgBadge");
     badge.hidden = n === 0;
     badge.textContent = n;
-    var feed = await client.from("messages").select("*").eq("kind", "announcement").order("created_at", { ascending: false }).limit(5);
+    var feed = await client.from("messages").select("*").eq("kind", "announcement").order("pinned", { ascending: false }).order("created_at", { ascending: false }).limit(5);
     if (feed.error) { $("dashAnnouncements").innerHTML = '<p class="empty">Could not load announcements.</p>'; return; }
     if (!feed.data.length) { $("dashAnnouncements").innerHTML = '<p class="empty">No announcements yet.</p>'; return; }
     $("dashAnnouncements").innerHTML = feed.data.map(function (a) { return announcementHtml(a); }).join("");
+    wireAnnouncementAdmin();
   }
 
   function announcementHtml(a) {
@@ -307,8 +342,37 @@
       '<div class="avatar" aria-hidden="true">' + esc(initials(sender ? sender.name : "?")) + "</div>" +
       '<div class="body"><b>' + esc(sender ? sender.name : "Club") + "</b> " +
       '<span class="chip ghost">' + esc(a.audience === "everyone" ? "Everyone" : a.audience === "officials" ? "Officials only" : "Members only") + "</span>" +
+      (a.pinned ? ' <span class="chip orange">Pinned</span>' : "") +
       '<div class="meta">' + esc(timeAgo(a.created_at)) + "</div>" +
-      "<p>" + esc(a.body) + "</p></div></div>";
+      "<p>" + esc(a.body) + "</p></div>" +
+      (isMainAdmin() ? '<div class="actions">' +
+        '<button class="btn ghost small" type="button" data-ann-pin="' + esc(a.id) + '" data-ann-pinned="' + (a.pinned ? "1" : "0") + '">' + (a.pinned ? "Unpin" : "Pin") + "</button>" +
+        '<button class="btn ghost small" type="button" data-ann-delete="' + esc(a.id) + '">Delete</button>' +
+        "</div>" : "") +
+      "</div>";
+  }
+
+  // Main Admin only: pin / unpin and delete any announcement. Wired after
+  // every render of the announcement lists (dashboard + Announcements tab).
+  function wireAnnouncementAdmin() {
+    document.querySelectorAll("[data-ann-pin]").forEach(function (btn) {
+      btn.addEventListener("click", async function () {
+        var next = btn.getAttribute("data-ann-pinned") !== "1";
+        var res = await client.from("messages").update({ pinned: next }).eq("id", btn.getAttribute("data-ann-pin"));
+        if (res.error) { alert("Could not change the pin: " + res.error.message); return; }
+        await refreshAnnouncements();
+        await refreshDashboard();
+      });
+    });
+    document.querySelectorAll("[data-ann-delete]").forEach(function (btn) {
+      btn.addEventListener("click", async function () {
+        if (!window.confirm("Delete this announcement? This cannot be undone.")) return;
+        var res = await client.from("messages").delete().eq("id", btn.getAttribute("data-ann-delete"));
+        if (res.error) { alert("Could not delete the announcement: " + res.error.message); return; }
+        await refreshAnnouncements();
+        await refreshDashboard();
+      });
+    });
   }
 
   /* ---------------- messages ---------------- */
@@ -463,10 +527,11 @@
   }
 
   async function refreshAnnouncements() {
-    var res = await client.from("messages").select("*").eq("kind", "announcement").order("created_at", { ascending: false }).limit(30);
+    var res = await client.from("messages").select("*").eq("kind", "announcement").order("pinned", { ascending: false }).order("created_at", { ascending: false }).limit(30);
     if (res.error) { $("announceList").innerHTML = '<p class="empty">Could not load announcements.</p>'; return; }
     if (!res.data.length) { $("announceList").innerHTML = '<p class="empty">No announcements yet.</p>'; return; }
     $("announceList").innerHTML = res.data.map(function (a) { return announcementHtml(a); }).join("");
+    wireAnnouncementAdmin();
   }
 
   /* ---------------- interested applicants ---------------- */
@@ -743,12 +808,96 @@
   /* ---------------- admin panel ---------------- */
   function setupAdmin() {
     if (!isAdmin()) return;
+    if (!isMainAdmin()) return;
+    var csvBtn = $("csvBtn");
+    if (csvBtn) csvBtn.addEventListener("click", downloadMembersCsv);
+    var backupBtn = $("backupBtn");
+    if (backupBtn) backupBtn.addEventListener("click", downloadBackup);
+    var lockBtn = $("lockdownBtn");
+    if (lockBtn) lockBtn.addEventListener("click", toggleLockdown);
+  }
+
+  // Main Admin only: download the member list as a CSV file.
+  function downloadMembersCsv() {
+    var head = ["Name", "Login ID", "Role", "Door", "Email", "Mobile", "Email verified", "Suspended", "Added by", "Joined"];
+    function q(v) { return '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"'; }
+    var lines = adminRows.map(function (p) {
+      return [p.name, p.login_id, ROLE_LABELS[p.role] || p.role, DOOR_LABELS[p.door] || p.door,
+        p.email || "", p.mobile || "", p.email_verified ? "Yes" : "No", p.is_suspended ? "Yes" : "No",
+        p.added_by || "", p.created_at || ""].map(q).join(",");
+    });
+    downloadFile("reva-fashion-club-members-" + new Date().toISOString().slice(0, 10) + ".csv",
+      head.map(q).join(",") + "\n" + lines.join("\n"), "text/csv;charset=utf-8");
+  }
+
+  // Main Admin only: download everything the Main Admin can see —
+  // members, messages, announcements and applicants — as one JSON file.
+  // (Private DMs between other members are NOT included: the backup only
+  // holds what the Main Admin can already see in the portal.)
+  async function downloadBackup() {
+    var btn = $("backupBtn");
+    if (btn) { btn.disabled = true; btn.textContent = "Preparing…"; }
+    var members = await client.rpc("list_members_full");
+    var messages = await client.from("messages").select("*").order("created_at", { ascending: false }).limit(1000);
+    var apps = await client.from("applications").select("*").order("created_at", { ascending: false }).limit(500);
+    if (btn) { btn.disabled = false; btn.textContent = "Download full club backup"; }
+    if (members.error || messages.error || apps.error) {
+      alert("Could not build the backup: " + ((members.error || messages.error || apps.error).message));
+      return;
+    }
+    downloadFile("reva-fashion-club-backup-" + new Date().toISOString().slice(0, 10) + ".json",
+      JSON.stringify({ exported_at: new Date().toISOString(), exported_by: me.login_id,
+        members: members.data || [], messages: messages.data || [], applications: apps.data || [] }, null, 2),
+      "application/json;charset=utf-8");
+  }
+
+  // Main Admin only: lockdown mode — when on, nobody except the Main
+  // Admin can sign in (the login page and the portal both enforce it).
+  async function refreshLockdown() {
+    var res = await client.rpc("get_lockdown");
+    if (!res.error) lockdownOn = res.data === true;
+    var st = $("lockdownStatus");
+    if (st) st.textContent = lockdownOn ? "ON — only you can sign in right now." : "Off — everyone can sign in.";
+    var btn = $("lockdownBtn");
+    if (btn) btn.textContent = lockdownOn ? "Turn lockdown off" : "Turn lockdown on";
+  }
+  async function toggleLockdown() {
+    var next = !lockdownOn;
+    if (!window.confirm(next
+      ? "Turn lockdown ON? Nobody except you will be able to sign in — everyone else will be signed out."
+      : "Turn lockdown OFF? Everyone will be able to sign in again.")) return;
+    var res = await client.rpc("set_lockdown", { p_locked: next });
+    if (res.error) { alert("Could not change lockdown: " + res.error.message); return; }
+    await refreshLockdown();
+  }
+
+  // Main Admin only: the audit log — who created, changed or removed
+  // accounts. Only records events from the day the audit table was made.
+  async function refreshAuditLog() {
+    var res = await client.from("audit_log").select("*").order("created_at", { ascending: false }).limit(100);
+    if (res.error) { $("auditList").innerHTML = '<p class="empty">Could not load the audit log: ' + esc(res.error.message) + "</p>"; return; }
+    var rows = res.data || [];
+    if (!rows.length) { $("auditList").innerHTML = '<p class="empty">No account changes recorded yet. The log starts from the day it was switched on.</p>'; return; }
+    $("auditList").innerHTML = rows.map(function (r) {
+      return '<div class="row-item"><div class="avatar" aria-hidden="true">' + esc(initials(r.actor_name || "?")) + "</div>" +
+        '<div class="body"><b>' + esc(r.actor_name || "SQL Editor") + "</b> " +
+        '<span class="chip ghost">' + esc(r.action) + "</span>" +
+        '<div class="meta">' + esc(timeAgo(r.created_at)) + (r.target_name ? " &middot; " + esc(r.target_name) + (r.target_login_id ? " (" + esc(r.target_login_id) + ")" : "") : "") + "</div>" +
+        (r.details ? "<p>" + esc(r.details) + "</p>" : "") + "</div></div>";
+    }).join("");
   }
 
   async function refreshAdminList() {
     var res = await client.rpc("list_members_full");
     if (res.error) { $("adminList").innerHTML = '<p class="empty">Could not load accounts: ' + esc(res.error.message) + "</p>"; return; }
     var rows = res.data || [];
+    adminRows = rows;
+    // Main Admin only: when each member last signed in.
+    if (isMainAdmin()) {
+      var ls = await client.rpc("list_last_signins");
+      lastSignins = {};
+      if (!ls.error && ls.data) ls.data.forEach(function (r) { lastSignins[r.id] = r.last_sign_in_at; });
+    }
     if (!rows.length) { $("adminList").innerHTML = '<p class="empty">No accounts yet.</p>'; return; }
     $("adminList").innerHTML = rows.map(function (p) {
       var viewerIsMain = isMainAdmin();
@@ -767,15 +916,19 @@
         '<div class="body"><b>' + esc(p.name) + "</b> " +
         '<span class="chip' + (p.role === "admin" || p.role === "second_admin" ? " orange" : "") + '">' + esc(ROLE_LABELS[p.role] || p.role) + "</span> " +
         (p.email_verified ? '<span class="chip ghost">Email verified</span>' : '<span class="chip ghost">Email not verified</span>') +
+        (p.is_suspended ? ' <span class="chip orange">Suspended</span>' : "") +
         '<div class="meta">Login ID: ' + esc(p.login_id) + " &middot; " + esc(DOOR_LABELS[p.door]) + " door &middot; Added by " +
         (p.added_by_role === "admin" ? "Admin" : esc(p.added_by) + " (" + esc(ROLE_LABELS[p.added_by_role] || p.added_by_role) + ")") +
         " &middot; " + esc(timeAgo(p.created_at)) + "</div>" +
         '<div class="contact-line">Email: ' + esc(p.email || "—") + "  •  Mobile: " + esc(p.mobile || "—") + "</div>" +
+        (viewerIsMain ? '<div class="meta">Last sign-in: ' + esc(lastSigninText(p.id)) + "</div>" : "") +
         '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center">' +
         '<label style="margin:0" for="role-' + esc(p.id) + '">Role</label>' +
         '<select id="role-' + esc(p.id) + '" data-role-for="' + esc(p.id) + '" style="width:auto;margin:0"' + (canChangeRole ? "" : " disabled") + '>' + opts + "</select>" +
         rowNote +
         (canRemove ? '<button class="btn ghost small" type="button" data-remove="' + esc(p.id) + '" data-remove-name="' + esc(p.name) + '">Remove account</button>' : "") +
+        (viewerIsMain && p.role !== "admin" ? '<button class="btn ghost small" type="button" data-suspend="' + esc(p.id) + '" data-suspend-name="' + esc(p.name) + '" data-suspend-now="' + (p.is_suspended ? "0" : "1") + '">' + (p.is_suspended ? "Unsuspend" : "Suspend") + "</button>" : "") +
+        (viewerIsMain ? '<button class="btn ghost small" type="button" data-resetpw="' + esc(p.email || "") + '">Reset password</button>' : "") +
         "</div></div></div>";
     }).join("") + '<p class="muted" style="margin-top:14px">Removing an account deletes its portal profile. Also delete the same user in Supabase Dashboard → Authentication → Users, otherwise the email stays registered and cannot be used for a new account.</p>';
     document.querySelectorAll("[data-role-for]").forEach(function (sel) {
@@ -803,6 +956,64 @@
         await refreshAdminList();
       });
     });
+    // Main Admin only: suspend / unsuspend, and send a password-reset email.
+    document.querySelectorAll("[data-suspend]").forEach(function (btn) {
+      btn.addEventListener("click", async function () {
+        var id = btn.getAttribute("data-suspend");
+        var name = btn.getAttribute("data-suspend-name");
+        var suspending = btn.getAttribute("data-suspend-now") === "1";
+        if (!window.confirm((suspending ? "Suspend " : "Unsuspend ") + name +
+          (suspending ? "? They will not be able to sign in until you unsuspend them." : "? They will be able to sign in again."))) return;
+        var res = await client.rpc("set_member_suspended", { p_id: id, p_suspended: suspending });
+        if (res.error) { alert("Could not update: " + res.error.message); return; }
+        await refreshDirectory();
+        await refreshAdminList();
+      });
+    });
+    document.querySelectorAll("[data-resetpw]").forEach(function (btn) {
+      btn.addEventListener("click", async function () {
+        var email = btn.getAttribute("data-resetpw");
+        if (!email) { alert("No email on this account."); return; }
+        if (!window.confirm("Send a password-reset email to " + email + "? They will set a new password from the link.")) return;
+        btn.disabled = true; btn.textContent = "Sending…";
+        var res = await client.auth.resetPasswordForEmail(email, { redirectTo: portalLoginUrl() });
+        btn.disabled = false; btn.textContent = "Reset password";
+        if (res.error) { alert("Could not send the reset email: " + res.error.message); return; }
+        btn.textContent = "Reset email sent";
+      });
+    });
+    if (isMainAdmin()) await renderAnalytics(rows);
+  }
+
+  function lastSigninText(id) {
+    var v = lastSignins[id];
+    return v ? timeAgo(v) : "Never signed in";
+  }
+
+  // Main Admin only: club numbers at a glance, from the admin list.
+  async function renderAnalytics(rows) {
+    var box = $("analyticsGrid");
+    if (!box) return;
+    var total = rows.length;
+    var suspended = rows.filter(function (p) { return p.is_suspended; }).length;
+    var monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+    var joinedMonth = rows.filter(function (p) { return new Date(p.created_at) >= monthStart; }).length;
+    var byRole = {};
+    rows.forEach(function (p) { byRole[p.role] = (byRole[p.role] || 0) + 1; });
+    var roleLines = Object.keys(byRole).sort(function (a, b) { return byRole[b] - byRole[a]; }).map(function (r) {
+      return "<div>" + esc(ROLE_LABELS[r] || r) + ": <b>" + byRole[r] + "</b></div>";
+    }).join("");
+    var appCount = null;
+    var apps = await client.from("applications").select("id", { count: "exact", head: true }).eq("status", "new");
+    if (!apps.error && typeof apps.count === "number") appCount = apps.count;
+    box.innerHTML =
+      '<div class="stat-grid">' +
+      '<div class="stat"><b>' + total + '</b><span>Total members</span></div>' +
+      '<div class="stat"><b>' + joinedMonth + '</b><span>Joined this month</span></div>' +
+      '<div class="stat"><b>' + (appCount === null ? "–" : appCount) + '</b><span>New applicants</span></div>' +
+      '<div class="stat"><b>' + suspended + '</b><span>Suspended</span></div>' +
+      "</div>" +
+      '<div class="muted" style="margin-top:10px">' + roleLines + "</div>";
   }
 
   /* ---------------- settings ---------------- */

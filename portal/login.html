@@ -85,6 +85,7 @@
   .msg.show{display:block}
   .msg.err{background:rgba(220,70,50,.12);border:1px solid rgba(220,70,50,.45);color:#ffb3a6}
   .msg.ok{background:rgba(40,160,90,.12);border:1px solid rgba(40,160,90,.45);color:#9fe6b8}
+  .msg.warn{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.45);color:#ffd9a0}
   .card .dash{margin:24px 0 18px;border-top-color:rgba(244,239,228,.25)}
   .no-account{margin:0;text-align:center;font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--cream-45);line-height:1.7}
 
@@ -132,6 +133,8 @@
         <button type="button" class="tab" data-door="admin" aria-pressed="false">Admin</button>
       </div>
 
+      <div class="msg show warn" id="lockdownNotice" role="alert" hidden>Logins are paused by the Main Admin &mdash; only the Main Admin can sign in right now.</div>
+
       <form id="signInForm" novalidate>
         <h2 id="formTitle">Welcome back, <span class="serif-i">member</span></h2>
         <p class="hintline" id="formHint">Sign in with the login ID the admin gave you.</p>
@@ -152,6 +155,17 @@
           <span id="signInBtnText">Sign in as Member</span>
         </button>
         <div class="msg" id="signInMsg" role="alert"></div>
+      </form>
+
+      <form id="resetForm" novalidate hidden>
+        <h2>Set a <span class="serif-i">new password</span></h2>
+        <p class="hintline">You came from a password-reset email. Choose a new password below.</p>
+        <label for="resetPass">New password</label>
+        <input id="resetPass" type="password" autocomplete="new-password" placeholder="At least 6 characters" required />
+        <label for="resetPass2">Repeat new password</label>
+        <input id="resetPass2" type="password" autocomplete="new-password" placeholder="Repeat the new password" required />
+        <button class="btn" type="submit" id="resetBtn">Set new password</button>
+        <div class="msg" id="resetMsg" role="alert"></div>
       </form>
 
       <div class="dash" aria-hidden="true"></div>
@@ -226,10 +240,50 @@
     b.addEventListener("click", function () { selectDoor(b.getAttribute("data-door"), true); });
   });
 
-  // Already signed in? Go straight to the portal.
-  client.auth.getSession().then(function (res) {
-    if (res.data && res.data.session) location.href = "./app.html";
+  // Password-reset links land here: the URL hash carries type=recovery.
+  // In that case do NOT bounce an existing session to the portal — show
+  // the "set a new password" form instead.
+  var isRecovery = /type=recovery/.test(location.hash);
+  if (!isRecovery) {
+    client.auth.getSession().then(function (res) {
+      if (res.data && res.data.session) location.href = "./app.html";
+    });
+  }
+
+  // Bounced here by the portal (suspended account / lockdown)?
+  var pageParams = new URLSearchParams(location.search);
+  if (pageParams.get("suspended") === "1") showMsg("Your account is suspended. Contact the Main Admin.");
+  if (pageParams.get("locked") === "1") showMsg("Logins are paused by the Main Admin. Only the Main Admin can sign in right now.");
+  // Lockdown notice (fails silently until the Main Admin SQL has been run).
+  client.rpc("get_lockdown").then(function (res) {
+    if (!res.error && res.data === true) {
+      var n = document.getElementById("lockdownNotice");
+      if (n) n.hidden = false;
+    }
   });
+
+  // Recovery form: set a new password from the reset email link.
+  if (isRecovery) {
+    form.hidden = true;
+    document.querySelectorAll(".tab").forEach(function (b) { b.disabled = true; });
+    var resetForm = document.getElementById("resetForm");
+    var resetMsg = document.getElementById("resetMsg");
+    resetForm.hidden = false;
+    resetForm.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      var p1 = document.getElementById("resetPass").value;
+      var p2 = document.getElementById("resetPass2").value;
+      resetMsg.textContent = ""; resetMsg.className = "msg";
+      if (p1.length < 6) { resetMsg.textContent = "Choose a password of at least 6 characters."; resetMsg.className = "msg show err"; return; }
+      if (p1 !== p2) { resetMsg.textContent = "The two passwords do not match."; resetMsg.className = "msg show err"; return; }
+      document.getElementById("resetBtn").disabled = true;
+      var done = await client.auth.updateUser({ password: p1 });
+      document.getElementById("resetBtn").disabled = false;
+      if (done.error) { resetMsg.textContent = "Could not set the password: " + done.error.message; resetMsg.className = "msg show err"; return; }
+      resetMsg.textContent = "Password set. Taking you to the portal…"; resetMsg.className = "msg show ok";
+      setTimeout(function () { location.href = "./app.html"; }, 1200);
+    });
+  }
 
   // A door can be pre-selected with ?door=member | official | admin
   var preset = new URLSearchParams(location.search).get("door");
@@ -263,15 +317,28 @@
         return;
       }
       // Step 3: door enforcement — the account's door must match the chosen door.
-      var me = await client.from("profiles").select("id, role, door").eq("id", signIn.data.user.id).single();
+      var me = await client.from("profiles").select("id, role, door, is_suspended").eq("id", signIn.data.user.id).single();
       if (me.error || !me.data) {
         await client.auth.signOut();
         showMsg("Your account is not set up yet. Please contact the Admin.");
         return;
       }
+      // Suspended accounts cannot sign in at all.
+      if (me.data.is_suspended) {
+        await client.auth.signOut();
+        showMsg("Your account is suspended. Contact the Main Admin.");
+        return;
+      }
       if (me.data.door !== currentDoor) {
         await client.auth.signOut();
         showMsg("This account belongs to the " + DOOR_LABELS[me.data.door] + " door. Please use the " + DOOR_LABELS[me.data.door] + " Login instead.");
+        return;
+      }
+      // Step 4: lockdown — only the Main Admin signs in while it is on.
+      var lock = await client.rpc("get_lockdown");
+      if (!lock.error && lock.data === true && me.data.role !== "admin") {
+        await client.auth.signOut();
+        showMsg("Logins are paused by the Main Admin. Only the Main Admin can sign in right now.");
         return;
       }
       location.href = "./app.html";

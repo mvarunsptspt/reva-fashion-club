@@ -153,6 +153,7 @@
     <button role="tab" data-tab="applicants" aria-selected="false" id="tabApplicants">Interested Applicants <span class="badge" id="appBadge" hidden>0</span></button>
     <button role="tab" data-tab="create" aria-selected="false" id="tabCreate">Create Account</button>
     <button role="tab" data-tab="admin" aria-selected="false" id="tabAdmin">Admin</button>
+    <button role="tab" data-tab="audit" aria-selected="false" id="tabAudit">Audit Log</button>
     <button role="tab" data-tab="settings" aria-selected="false">Settings</button>
   </nav>
 
@@ -322,7 +323,30 @@
     <section class="tab" id="tab-admin" role="tabpanel" hidden>
       <h1 class="page">Admin <em>panel</em></h1>
       <p class="lede">Every account in the club, who added it, and full contact details. Main Admin and Second Admins manage accounts here — but only the Main Admin can change or remove admin accounts, and the Main Admin account itself can never be removed.</p>
+
+      <div id="mainAdminTools" hidden>
+        <div class="card">
+          <h2 class="sec" style="margin-top:0">Main Admin <span class="serif-i">tools</span></h2>
+          <p class="muted" style="margin-top:-6px">Only you can see this card. The tools below are Main Admin only.</p>
+          <div id="analyticsGrid"><p class="empty">Loading club numbers…</p></div>
+          <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
+            <button class="btn small" type="button" id="csvBtn">Download member list (CSV)</button>
+            <button class="btn small" type="button" id="backupBtn">Download full club backup</button>
+          </div>
+          <p class="muted" style="margin:14px 0 6px"><b>Lockdown mode</b> — when on, nobody except you can sign in.</p>
+          <p style="margin:0 0 10px"><span id="lockdownStatus">Checking…</span></p>
+          <button class="btn ghost small" type="button" id="lockdownBtn">Turn lockdown on</button>
+        </div>
+      </div>
+
       <div id="adminList"><p class="empty">Loading accounts…</p></div>
+    </section>
+
+    <!-- ================= AUDIT LOG ================= -->
+    <section class="tab" id="tab-audit" role="tabpanel" hidden>
+      <h1 class="page">Audit <em>log</em></h1>
+      <p class="lede">Every account that was created, changed or removed — who did it, and when. Main Admin only. The log starts from the day it was switched on; it cannot show anything from before that.</p>
+      <div id="auditList"><p class="empty">Loading audit log…</p></div>
     </section>
 
     <!-- ================= SETTINGS ================= -->
