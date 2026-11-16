@@ -137,7 +137,7 @@
         <p class="hintline" id="formHint">Sign in with the login ID the admin gave you.</p>
         <label for="loginId">Login ID</label>
         <input id="loginId" name="loginId" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="e.g. ananya2026" required />
-        <p class="field-hint">Letters and numbers only &mdash; no spaces.</p>
+        <p class="field-hint">Small letters and numbers only — no capitals, spaces or symbols.</p>
         <label for="password">Password</label>
         <div class="pw-wrap">
           <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Your password" required />
@@ -193,9 +193,10 @@
   }
   function hideMsg() { msg.textContent = ""; msg.className = "msg"; }
 
-  // Login ID rule: letters and numbers only — strip spaces and symbols as typed.
+  // Login ID rule: small letters and numbers only — lowercased and
+  // stripped of capitals, spaces and symbols as typed.
   loginIdInput.addEventListener("input", function () {
-    var clean = loginIdInput.value.replace(/[^A-Za-z0-9]/g, "");
+    var clean = loginIdInput.value.toLowerCase().replace(/[^a-z0-9]/g, "");
     if (clean !== loginIdInput.value) loginIdInput.value = clean;
   });
 
@@ -237,7 +238,7 @@
   form.addEventListener("submit", async function (e) {
     e.preventDefault();
     hideMsg();
-    var loginId = loginIdInput.value.trim();
+    var loginId = loginIdInput.value.trim().toLowerCase();
     var password = passwordInput.value;
     if (!loginId) { showMsg("Enter your login ID."); loginIdInput.focus(); return; }
     if (!password) { showMsg("Enter your password."); passwordInput.focus(); return; }

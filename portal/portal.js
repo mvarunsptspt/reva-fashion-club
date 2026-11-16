@@ -521,9 +521,10 @@
       ? "Second Admin: you can create Second Admins and any other role, except Main Admin."
       : "Office holders can only create Member / Core Member accounts. Other roles are assigned by the Admins.";
 
-    // Login ID rule: letters and numbers only — strip spaces and symbols as typed.
+    // Login ID rule: small letters and numbers only — lowercased and
+    // stripped of capitals, spaces and symbols as typed.
     $("cLoginId").addEventListener("input", function () {
-      var clean = $("cLoginId").value.replace(/[^A-Za-z0-9]/g, "");
+      var clean = $("cLoginId").value.toLowerCase().replace(/[^a-z0-9]/g, "");
       if (clean !== $("cLoginId").value) $("cLoginId").value = clean;
       updatePreview();
     });
@@ -543,11 +544,11 @@
       hideMsg($("createMsg"));
       var name = $("cName").value.trim();
       var role = $("cRole").value;
-      var loginId = $("cLoginId").value.trim();
+      var loginId = $("cLoginId").value.trim().toLowerCase();
       var email = $("cEmail").value.trim().toLowerCase();
       var mobile = $("cMobile").value.trim();
       if (!name) { showMsg($("createMsg"), "Enter the member's full name."); return; }
-      if (!loginId) { showMsg($("createMsg"), "Enter a login ID (letters and numbers only, no spaces)."); return; }
+      if (!loginId) { showMsg($("createMsg"), "Enter a login ID (small letters and numbers only — no capitals, spaces or symbols)."); return; }
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showMsg($("createMsg"), "Enter a valid email address."); return; }
       if (mobile.length < 10) { showMsg($("createMsg"), "Enter the full mobile number (at least 10 digits)."); return; }
       if (role === "admin" && !isMainAdmin()) {
