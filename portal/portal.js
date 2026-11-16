@@ -211,11 +211,19 @@
 
   function fillDmRecipients() {
     var sel = $("dmTo");
-    sel.innerHTML = directory
+    var opts = "";
+    // "All members" is only offered to the Main Admin, Second Admin,
+    // President and Vice Presidents (isPrivileged). Everyone else only
+    // sees individual people. The submit handler checks the role again.
+    if (isPrivileged()) {
+      opts += '<option value="__ALL__">All members — everyone in the club</option>';
+    }
+    opts += directory
       .filter(function (p) { return p.id !== me.id; })
       .map(function (p) {
         return '<option value="' + esc(p.id) + '">' + esc(p.name) + " — " + esc(ROLE_LABELS[p.role] || p.role) + "</option>";
       }).join("");
+    sel.innerHTML = opts;
   }
 
   /* ---------------- dashboard ---------------- */
@@ -245,13 +253,54 @@
   }
 
   /* ---------------- messages ---------------- */
+  // Broadcasts ("All members") are sent as one DM copy per member, each
+  // with audience='members' as its marker. That reuses the existing DM
+  // rules exactly: every recipient gets their own unread copy (and can
+  // mark just their copy read), the sender sees all copies, and no
+  // database change is needed — the audience column already allows
+  // 'members'. Announcements are unaffected: they are filtered by kind,
+  // and only announcements carry an audience chip there.
   function setupMessages() {
+    $("dmTo").addEventListener("change", function () {
+      var all = $("dmTo").value === "__ALL__";
+      $("dmAllHint").hidden = !all;
+      if (all) {
+        var n = directory.filter(function (p) { return p.id !== me.id; }).length;
+        $("dmAllHint").textContent = "Sending to All members delivers this message to everyone in the club (" +
+          n + (n === 1 ? " person" : " people") + "). Each member gets their own copy in their inbox.";
+      }
+    });
+
     $("dmForm").addEventListener("submit", async function (e) {
       e.preventDefault();
       hideMsg($("dmMsg"));
       var to = $("dmTo").value, subject = $("dmSubject").value.trim(), body = $("dmBody").value.trim();
       if (!to) { showMsg($("dmMsg"), "Choose who to message."); return; }
       if (!body) { showMsg($("dmMsg"), "Write a message first."); return; }
+
+      // --- Send to all members (Main Admin, Second Admin, President,
+      // Vice Presidents only) ---
+      if (to === "__ALL__") {
+        if (!isPrivileged()) {
+          showMsg($("dmMsg"), "Only the Main Admin, Second Admin, President and Vice Presidents can message all members.");
+          return;
+        }
+        var targets = directory.filter(function (p) { return p.id !== me.id; });
+        if (!targets.length) { showMsg($("dmMsg"), "There is nobody else in the club yet."); return; }
+        if (!window.confirm("Send this message to all " + targets.length + " members? Every member will get their own copy in their inbox.")) return;
+        $("dmSendBtn").disabled = true;
+        var rows = targets.map(function (p) {
+          return { sender_id: me.id, recipient_id: p.id, kind: "dm", subject: subject || null, body: body, audience: "members" };
+        });
+        var sent = await client.from("messages").insert(rows);
+        $("dmSendBtn").disabled = false;
+        if (sent.error) { showMsg($("dmMsg"), "Could not send: " + sent.error.message); return; }
+        $("dmSubject").value = ""; $("dmBody").value = "";
+        showMsg($("dmMsg"), "Message sent to all members (" + targets.length + " people).", "ok");
+        await refreshInbox();
+        return;
+      }
+
       $("dmSendBtn").disabled = true;
       var res = await client.from("messages").insert({
         sender_id: me.id, recipient_id: to, kind: "dm", subject: subject || null, body: body
@@ -289,16 +338,36 @@
       return m.recipient_id === me.id || m.sender_id === me.id;
     });
     if (!items.length) { $("inboxList").innerHTML = '<p class="empty">No messages yet. Your welcome message and any reports will appear here.</p>'; return; }
-    $("inboxList").innerHTML = items.map(function (m) {
+    // Collapse a broadcast into one row in the sender's inbox: the send
+    // wrote one copy per member, all sharing sender, subject, body and
+    // the exact created_at (one insert), so that tuple identifies a batch.
+    // Recipients only ever see their own single copy (see the filter
+    // above), so grouping never hides anyone's message from them.
+    var rows = [];
+    var bmap = {};
+    items.forEach(function (m) {
+      if (m.kind === "dm" && m.audience === "members" && m.sender_id === me.id) {
+        var key = (m.subject || "") + "\u0000" + m.body + "\u0000" + m.created_at;
+        if (!bmap[key]) { bmap[key] = { m: m, count: 0 }; rows.push(bmap[key]); }
+        bmap[key].count++;
+      } else {
+        rows.push({ m: m, count: 1 });
+      }
+    });
+    $("inboxList").innerHTML = rows.map(function (row) {
+      var m = row.m;
       var sender = directoryById[m.sender_id];
       var toMe = m.recipient_id === me.id;
       var unread = toMe && !m.is_read;
+      var isBroadcast = m.kind === "dm" && m.audience === "members";
       var label = m.kind === "report"
         ? "Report to Admin — " + esc(m.subject || "Report")
-        : (m.sender_id === me.id ? "To " + esc((directoryById[m.recipient_id] || {}).name || "…") : "From " + esc(sender ? sender.name : "…"));
+        : (m.sender_id === me.id
+          ? (isBroadcast ? "To All members (" + row.count + (row.count === 1 ? " person" : " people") + ")" : "To " + esc((directoryById[m.recipient_id] || {}).name || "…"))
+          : "From " + esc(sender ? sender.name : "…"));
       return '<div class="row-item' + (unread ? " unread" : "") + '">' +
         '<div class="avatar" aria-hidden="true">' + esc(initials(sender ? sender.name : "?")) + "</div>" +
-        '<div class="body"><b>' + label + "</b> " + (unread ? '<span class="chip orange">Unread</span>' : "") +
+        '<div class="body"><b>' + label + "</b> " + (unread ? '<span class="chip orange">Unread</span>' : "") + (isBroadcast ? ' <span class="chip ghost">All members</span>' : "") +
         '<div class="meta">' + esc(timeAgo(m.created_at)) + (m.subject && m.kind === "dm" ? " &middot; " + esc(m.subject) : "") + "</div>" +
         "<p>" + esc(m.body) + "</p></div>" +
         (unread ? '<div class="actions"><button class="btn ghost small" type="button" data-read="' + esc(m.id) + '">Mark read</button></div>' : "") +

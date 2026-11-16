@@ -192,13 +192,14 @@
     <!-- ================= MESSAGES ================= -->
     <section class="tab" id="tab-messages" role="tabpanel" hidden>
       <h1 class="page">Your <em>messages</em></h1>
-      <p class="lede">Direct messages, reports to the Admin, and announcements sent to you.</p>
+      <p class="lede">Direct messages, reports to the Admin, and announcements sent to you. The Main Admin, Second Admin, President and Vice Presidents can also message all members at once — choose “All members” in the To box below.</p>
 
       <div class="card">
         <h2 class="sec" style="margin-top:0">Write a <span class="serif-i">message</span></h2>
         <form id="dmForm" novalidate>
           <label for="dmTo">To</label>
           <select id="dmTo" required></select>
+          <p class="field-hint" id="dmAllHint" hidden>Sending to All members delivers this message to everyone in the club.</p>
           <label for="dmSubject">Subject</label>
           <input id="dmSubject" type="text" placeholder="e.g. Costume fitting on Friday" />
           <label for="dmBody">Message</label>
