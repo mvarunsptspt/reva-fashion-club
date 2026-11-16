@@ -74,6 +74,9 @@
   function isMainAdmin() { return me && me.role === "admin"; }
   function isAdmin() { return me && (me.role === "admin" || me.role === "second_admin"); }
   function isPrivileged() { return me && (me.role === "admin" || me.role === "second_admin" || me.role === "president" || me.role === "vice_president"); }
+  // "Interested Applicants" is only for the Main Admin, President and
+  // Vice Presidents — NOT Second Admins, NOT other officials, NOT members.
+  function canViewApplicants() { return me && (me.role === "admin" || me.role === "president" || me.role === "vice_president"); }
   function isOfficialOrAbove() { return me && (me.role !== "member" && me.role !== "core_member"); }
   function canCreate() { return isAdmin() || (me && OFFICE_ROLES.indexOf(me.role) !== -1); }
   function canPostAnnouncement() { return isOfficialOrAbove(); }
@@ -116,6 +119,7 @@
     await refreshDashboard();
     await refreshInbox();
     await refreshAnnouncements();
+    if (canViewApplicants()) await refreshApplicants();
     if (isAdmin()) await refreshAdminList();
   }
 
@@ -130,6 +134,7 @@
     $("setAddedBy").textContent = "Added by " + (me.added_by_role === "admin" ? "Admin" : me.added_by + " (" + (ROLE_LABELS[me.added_by_role] || me.added_by_role) + ")");
     if (!canCreate()) $("tabCreate").hidden = true;
     if (!isAdmin()) $("tabAdmin").hidden = true;
+    if (!canViewApplicants()) $("tabApplicants").hidden = true;
     if (!canPostAnnouncement()) $("announcePostCard").hidden = true;
     if (!me.email_verified) {
       $("verifyNotice").hidden = false;
@@ -408,6 +413,56 @@
     if (res.error) { $("announceList").innerHTML = '<p class="empty">Could not load announcements.</p>'; return; }
     if (!res.data.length) { $("announceList").innerHTML = '<p class="empty">No announcements yet.</p>'; return; }
     $("announceList").innerHTML = res.data.map(function (a) { return announcementHtml(a); }).join("");
+  }
+
+  /* ---------------- interested applicants ---------------- */
+  // Join-form submissions from the public website. Only the Main Admin,
+  // President and Vice Presidents ever reach this code (the tab is hidden
+  // for everyone else, and the database only lets those three roles read
+  // the applications table). New ones carry a "New" chip and a count on
+  // the tab; marking one reviewed clears it. Only the Main Admin can
+  // remove an application.
+  async function refreshApplicants() {
+    var res = await client.from("applications").select("*").order("created_at", { ascending: false }).limit(100);
+    if (res.error) { $("applicantList").innerHTML = '<p class="empty">Could not load applicants: ' + esc(res.error.message) + "</p>"; return; }
+    var rows = res.data || [];
+    var fresh = rows.filter(function (a) { return a.status === "new"; }).length;
+    var badge = $("appBadge");
+    badge.hidden = fresh === 0;
+    badge.textContent = fresh;
+    if (!rows.length) { $("applicantList").innerHTML = '<p class="empty">No applications yet. New Join-form submissions will appear here.</p>'; return; }
+    $("applicantList").innerHTML = rows.map(function (a) {
+      var isNew = a.status === "new";
+      return '<div class="row-item' + (isNew ? " unread" : "") + '">' +
+        '<div class="avatar" aria-hidden="true">' + esc(initials(a.name)) + "</div>" +
+        '<div class="body"><b>' + esc(a.name) + "</b> " +
+        '<span class="chip' + (isNew ? " orange" : " ghost") + '">' + (isNew ? "New" : "Reviewed") + "</span>" +
+        '<div class="meta">' + esc(a.vertical || "") + " &middot; " + esc(a.programme || "") + " &middot; " + esc(a.year || "") +
+        (a.srn ? " &middot; SRN: " + esc(a.srn) : "") + " &middot; " + esc(timeAgo(a.created_at)) + "</div>" +
+        (a.why ? "<p>" + esc(a.why) + "</p>" : '<p class="muted">No note given.</p>') +
+        "</div>" +
+        '<div class="actions">' +
+        '<button class="btn ghost small" type="button" data-app-toggle="' + esc(a.id) + '" data-app-status="' + esc(a.status) + '">' + (isNew ? "Mark reviewed" : "Mark new") + "</button>" +
+        (isMainAdmin() ? '<button class="btn ghost small" type="button" data-app-remove="' + esc(a.id) + '" data-app-name="' + esc(a.name) + '">Remove</button>' : "") +
+        "</div></div>";
+    }).join("");
+    document.querySelectorAll("[data-app-toggle]").forEach(function (btn) {
+      btn.addEventListener("click", async function () {
+        var next = btn.getAttribute("data-app-status") === "new" ? "reviewed" : "new";
+        var res = await client.from("applications").update({ status: next }).eq("id", btn.getAttribute("data-app-toggle"));
+        if (res.error) { alert("Could not update the application: " + res.error.message); return; }
+        await refreshApplicants();
+      });
+    });
+    document.querySelectorAll("[data-app-remove]").forEach(function (btn) {
+      btn.addEventListener("click", async function () {
+        var name = btn.getAttribute("data-app-name");
+        if (!window.confirm("Remove " + name + "'s application? This cannot be undone.")) return;
+        var res = await client.from("applications").delete().eq("id", btn.getAttribute("data-app-remove"));
+        if (res.error) { alert("Could not remove the application: " + res.error.message); return; }
+        await refreshApplicants();
+      });
+    });
   }
 
   /* ---------------- email OTP (my own account) ---------------- */

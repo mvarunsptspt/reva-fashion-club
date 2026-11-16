@@ -150,6 +150,7 @@
     <button role="tab" data-tab="members" aria-selected="false">Members</button>
     <button role="tab" data-tab="messages" aria-selected="false">Messages <span class="badge" id="msgBadge" hidden>0</span></button>
     <button role="tab" data-tab="announcements" aria-selected="false">Announcements</button>
+    <button role="tab" data-tab="applicants" aria-selected="false" id="tabApplicants">Interested Applicants <span class="badge" id="appBadge" hidden>0</span></button>
     <button role="tab" data-tab="create" aria-selected="false" id="tabCreate">Create Account</button>
     <button role="tab" data-tab="admin" aria-selected="false" id="tabAdmin">Admin</button>
     <button role="tab" data-tab="settings" aria-selected="false">Settings</button>
@@ -252,6 +253,13 @@
       </div>
 
       <div id="announceList"><p class="empty">Loading announcements…</p></div>
+    </section>
+
+    <!-- ================= INTERESTED APPLICANTS ================= -->
+    <section class="tab" id="tab-applicants" role="tabpanel" hidden>
+      <h1 class="page">Interested <em>applicants</em></h1>
+      <p class="lede">Everyone who filled in the Join form on the public website. Only the Main Admin, President and Vice Presidents can see this list.</p>
+      <div id="applicantList"><p class="empty">Loading applicants…</p></div>
     </section>
 
     <!-- ================= CREATE ACCOUNT ================= -->
