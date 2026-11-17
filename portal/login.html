@@ -83,6 +83,7 @@
   .btn[disabled]{opacity:.6;cursor:wait;transform:none;box-shadow:none}
   .msg{margin:16px 0 0;border-radius:12px;padding:13px 15px;font-size:14px;line-height:1.55;display:none}
   .msg.show{display:block}
+  .msg[hidden]{display:none}
   .msg.err{background:rgba(220,70,50,.12);border:1px solid rgba(220,70,50,.45);color:#ffb3a6}
   .msg.ok{background:rgba(40,160,90,.12);border:1px solid rgba(40,160,90,.45);color:#9fe6b8}
   .msg.warn{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.45);color:#ffd9a0}
@@ -133,7 +134,7 @@
         <button type="button" class="tab" data-door="admin" aria-pressed="false">Admin</button>
       </div>
 
-      <div class="msg show warn" id="lockdownNotice" role="alert" hidden>Logins are paused by the Main Admin &mdash; only the Main Admin can sign in right now.</div>
+      <div class="msg warn" id="lockdownNotice" role="alert" hidden>Logins are paused by the Main Admin &mdash; only the Main Admin can sign in right now.</div>
 
       <form id="signInForm" novalidate>
         <h2 id="formTitle">Welcome back, <span class="serif-i">member</span></h2>
@@ -263,7 +264,7 @@
   client.rpc("get_lockdown").then(function (res) {
     if (!res.error && res.data === true) {
       var n = document.getElementById("lockdownNotice");
-      if (n) n.hidden = false;
+      if (n) { n.hidden = false; n.classList.add("show"); }
     }
   });
 
