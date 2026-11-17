@@ -254,6 +254,11 @@
   var pageParams = new URLSearchParams(location.search);
   if (pageParams.get("suspended") === "1") showMsg("Your account is suspended. Contact the Main Admin.");
   if (pageParams.get("locked") === "1") showMsg("Logins are paused by the Main Admin. Only the Main Admin can sign in right now.");
+  if (pageParams.get("suspended") === "1" || pageParams.get("locked") === "1") {
+    // Clear the flag from the address bar, so the message does not keep
+    // showing on every visit after the lockdown is already switched off.
+    history.replaceState(null, "", location.pathname + location.hash);
+  }
   // Lockdown notice (fails silently until the Main Admin SQL has been run).
   client.rpc("get_lockdown").then(function (res) {
     if (!res.error && res.data === true) {
