@@ -10,7 +10,24 @@
   "use strict";
 
   var cfg = window.RFC_CONFIG;
-  var client = supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_PUBLISHABLE_KEY);
+  // Stay signed in (#91): the session lives in localStorage (remembered)
+  // or sessionStorage (this tab only). The login page picks which one
+  // from the "Stay signed in" checkbox (localStorage key rfc-remember);
+  // this adapter reads both stores so either choice works here too, and
+  // keeps exactly one copy of the token.
+  function rfcAuthStorage() {
+    return {
+      getItem: function (k) { try { return localStorage.getItem(k) || sessionStorage.getItem(k); } catch (e) { return null; } },
+      setItem: function (k, v) {
+        try {
+          if (localStorage.getItem("rfc-remember") === "0") { localStorage.removeItem(k); sessionStorage.setItem(k, v); }
+          else { sessionStorage.removeItem(k); localStorage.setItem(k, v); }
+        } catch (e) {}
+      },
+      removeItem: function (k) { try { localStorage.removeItem(k); sessionStorage.removeItem(k); } catch (e) {} }
+    };
+  }
+  var client = supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_PUBLISHABLE_KEY, { auth: { storage: rfcAuthStorage() } });
   var iso = supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_PUBLISHABLE_KEY, {
     auth: { storageKey: "rfc-portal-verify" }
   });
@@ -279,6 +296,11 @@
       setupRoles();
       await refreshRoles();
     }
+    // Second Admins also schedule announcements (#8) — load the list.
+    if (isSecondAdmin()) await refreshScheduled();
+    // Step 16 features (features91.js): hand over once the portal is up.
+    window.Portal91.booted = true;
+    if (window.__f91Init) { try { window.__f91Init(window.Portal91); } catch (e) { console.error(e); } }
   }
 
   // Load the club_roles table into clubRoles (labels, doors, permission
@@ -326,7 +348,7 @@
     // Main Admin, President and Vice Presidents; templates for the two
     // admin levels, drafts for anyone who can post announcements.
     $("memberSearchCard").hidden = !isPrivileged();
-    $("memberFilteredCsvBtn").hidden = !isMainAdmin();
+    $("memberFilteredCsvBtn").hidden = !(isMainAdmin() || isSecondAdmin());
     $("inboxTools").hidden = !isMainAdmin();
     $("broadcastCard").hidden = !canViewBroadcasts();
     $("needsAttention").hidden = !isMainAdmin();
@@ -335,7 +357,7 @@
     $("annTemplatesBox").hidden = !(isMainAdmin() || isSecondAdmin() || canPostAnnouncement());
     $("annTemplatesPart").hidden = !(isMainAdmin() || isSecondAdmin());
     $("annDraftsPart").hidden = !canPostAnnouncement();
-    $("annScheduleBox").hidden = !isMainAdmin();
+    $("annScheduleBox").hidden = !(isMainAdmin() || isSecondAdmin());
     $("announcePostCard").hidden = !canPostAnnouncement();
     if (!me.email_verified) {
       $("verifyNotice").hidden = false;
@@ -617,6 +639,15 @@
       (editable && p.role !== "admin" ? '<button class="btn ghost small" type="button" id="pfSuspBtn">' + (full.is_suspended ? "Unsuspend" : "Suspend") + "</button>" : "") +
       "</div>";
     $("profileBody").innerHTML = html;
+    // Step 16: extra profile sections (measurements, costume, show
+    // history, attendance, emergency contact, ID card). The hook returns
+    // an HTML string; its buttons are wired by delegation in features91.
+    if (window.__f91ProfileExtra) {
+      try {
+        var f91Extra = window.__f91ProfileExtra(window.Portal91, p, full, editable);
+        if (f91Extra) $("profileBody").innerHTML += f91Extra;
+      } catch (e) { console.error(e); }
+    }
     $("profileModal").hidden = false;
     if (editable) {
       $("pfLogin").addEventListener("input", function () {
@@ -1044,10 +1075,10 @@
         await loadAnnouncementTemplates();
       });
     }
-    // Schedule an announcement — Main Admin only. It posts the next
-    // time someone who can post announcements opens the portal after
-    // the scheduled time.
-    if (isMainAdmin()) {
+    // Schedule an announcement — Main Admin and Second Admin. It posts
+    // the next time someone who can post announcements opens the portal
+    // after the scheduled time.
+    if (isMainAdmin() || isSecondAdmin()) {
       var schedBtn = $("annSchedBtn");
       if (schedBtn) schedBtn.addEventListener("click", async function () {
         var body = $("annBody").value.trim();
@@ -2234,6 +2265,45 @@
       await refreshDirectory();
     });
   }
+
+  /* ---------------- 91-feature bridge (Step 16) ---------------- */
+  // features91.js (loaded after this file) builds the Step 16 features
+  // on top of this bridge. It runs after boot() finishes, via __f91Init.
+  // Portal91 exposes read-only views of the portal state plus the small
+  // helpers the new features need; it never bypasses a permission check
+  // (the database enforces the same rules server-side).
+  window.Portal91 = {
+    get me() { return me; },
+    get client() { return client; },
+    get directory() { return directory; },
+    get directoryById() { return directoryById; },
+    get adminRows() { return adminRows; },
+    get applicantsRows() { return applicantsRows; },
+    get annRows() { return annRows; },
+    get inboxItems() { return inboxItems; },
+    get clubRoles() { return clubRoles; },
+    get lastSignins() { return lastSignins; },
+    $: $, esc: esc, timeAgo: timeAgo, initials: initials,
+    downloadFile: downloadFile, showMsg: showMsg, hideMsg: hideMsg,
+    avatarHtml: avatarHtml, messageMember: messageMember,
+    refreshDirectory: refreshDirectory, openProfile: openProfile,
+    refreshApplicants: refreshApplicants, refreshAnnouncements: refreshAnnouncements,
+    refreshInbox: refreshInbox, refreshAdminList: refreshAdminList,
+    refreshDashboard: refreshDashboard, lastSigninText: lastSigninText,
+    isMainAdmin: isMainAdmin, isAdmin: isAdmin, isSecondAdmin: isSecondAdmin,
+    isPrivileged: isPrivileged, hasPerm: hasPerm,
+    canViewContacts: canViewContacts, canPostAnnouncement: canPostAnnouncement,
+    canBroadcast: canBroadcast, canViewApplicants: canViewApplicants,
+    canViewBroadcasts: canViewBroadcasts, canViewReadReceipts: canViewReadReceipts,
+    isOfficialOrAbove: isOfficialOrAbove, roleRow: roleRow,
+    roleLabel: function (code) { return ROLE_LABELS[code] || code; },
+    doorLabel: function (code) { return DOOR_LABELS[code] || code; },
+    showTab: function (name) {
+      var b = document.querySelector('nav.tabs button[data-tab="' + name + '"]');
+      if (b) b.click();
+    },
+    booted: false
+  };
 
   setupOtp();
   boot();

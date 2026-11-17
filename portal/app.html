@@ -144,6 +144,168 @@
   .modal{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:clamp(18px,3.5vw,26px);width:min(640px,100%);position:relative}
   .modal .close-x{position:absolute;top:14px;right:14px}
   @media (prefers-reduced-motion:reduce){.btn{transition:none}}
+
+/* ---- Step 16: events/events.css ---- */
+/* REVA Fashion Club portal — Step 16 (91 features), EVENTS & SHOWS package.
+   Extra classes only; all names prefixed ev- or f91-. */
+
+/* #64 — countdown digits. */
+.ev-count{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.ev-count b{font-size:34px;font-weight:900;line-height:1;color:var(--orange-deep)}
+.ev-count span{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-45)}
+
+/* #30 — lineup list inside an event detail panel. */
+.ev-lineup{margin:6px 0 0;padding-left:22px}
+.ev-lineup li{margin-bottom:10px;font-size:14.5px}
+.ev-lineup li .btn{margin-left:4px}
+
+/* #54 — year headings in the video archive. */
+.ev-year{font-size:15px;font-weight:800;margin:18px 0 8px}
+.ev-year:first-child{margin-top:4px}
+
+/* Detail panel + attendance list inside an event card. */
+.ev-detail .ev-att-list .row-item{margin-bottom:6px}
+
+/* ---- Step 16: finance/finance.css ---- */
+/* Finance package (Step 16, #3/#4/#5/#36/#43/#45/#52/#55/#71) — new classes only. */
+.fin-negative { color: #b3261e; }
+@media (prefers-color-scheme: dark) {
+  .fin-negative { color: #ff8a7a; }
+}
+.fin-amount { font-family: "IBM Plex Mono", monospace; font-weight: 600; }
+
+/* ---- Step 16: engage/engage.css ---- */
+/* Engagement package (features 91, Step 16) — extra styles only.
+   New classes are eg- prefixed. No existing app.html classes are redefined. */
+
+/* Poll result bars (#6/#11/#19) */
+.eg-poll-opts{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.eg-opt{font-size:14.5px;color:var(--ink-80)}
+.eg-opt .eg-count{display:block;font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.06em;color:var(--ink-45);margin-top:2px}
+.eg-bar{height:8px;border-radius:999px;background:var(--bg-2);overflow:hidden;margin-top:6px}
+.eg-bar-fill{height:100%;background:var(--thread);border-radius:999px;transition:width .4s var(--ease)}
+
+/* Reaction buttons (#60 wall, #83 announcements) */
+.eg-react-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.eg-react-on{border-color:var(--orange) !important;color:var(--orange-deep) !important;background:rgba(242,101,34,.08)}
+
+/* Club wall photos (#60) */
+.eg-wall-img{max-width:100%;border-radius:14px;display:block}
+
+/* Who's online dot (#80) — green dot beside a member's name */
+.eg-online-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#22a552;margin-left:7px;vertical-align:middle;box-shadow:0 0 0 2px rgba(34,165,82,.25)}
+
+/* Pinned-conversation marker (#78) */
+.eg-pin-mark{margin-left:6px}
+
+/* Saved-announcements filter button (#82) */
+#eg_savedFilterBtn{margin-bottom:14px}
+
+/* Template picker (#74/#79) */
+#eg_templateBox{margin-top:4px}
+
+/* ---- Step 16: people/people.css ---- */
+/* PEOPLE package (Step 16, features 91) — extra styles only.
+   All classes are prefixed pp- or f91-. */
+
+/* Applicant extras appended under each applicant row (#13, #14). */
+.pp-app-extra{margin-top:12px;border-top:1px solid var(--line-soft);padding-top:12px}
+.pp-app-extra textarea{min-height:60px}
+
+/* Profile completion meter (#84). */
+.pp-meter{height:10px;border-radius:999px;background:var(--bg-2);overflow:hidden;margin-top:12px}
+.pp-meter-fill{height:100%;border-radius:999px;background:var(--thread);transition:width .4s var(--ease)}
+
+/* ID card (#27) — the printable page opened by pp_openIdCard carries its
+   own inline styles, so it works offline with no external assets. These
+   rules only style the card if it is ever rendered inline. */
+.pp-idcard{width:340px;background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.pp-idcard-head{background:var(--dark);color:var(--cream);padding:18px 20px}
+.pp-idcard-head b{display:block;font-size:18px;letter-spacing:.04em;text-transform:uppercase}
+.pp-idcard-head span{font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--amber)}
+.pp-idcard-body{padding:20px;text-align:center}
+.pp-idcard-photo{width:110px;height:110px;border-radius:50%;object-fit:cover;display:block;margin:0 auto 14px}
+.pp-idcard-initials{display:grid;place-items:center;background:var(--dark);color:var(--amber);font-size:40px;font-weight:900}
+.pp-idcard-name{font-size:20px;font-weight:900;margin:0 0 4px}
+.pp-idcard-role{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--orange-deep)}
+.pp-idcard-meta{font-size:12px;color:var(--ink-62);margin-top:12px;line-height:1.9}
+
+@media print{
+  /* Only the ID card prints when its window prints; nothing else here
+     needs print-specific treatment. */
+  .pp-idcard-print{display:none !important}
+}
+
+/* ---- Step 16: shell/shell.css ---- */
+/* SHELL package — Step 16 (91 features) — portal CSS.
+   Paste into app.html's <style> block. The theme blocks mirror the existing
+   :root / prefers-color-scheme:dark variable values EXACTLY (no new colours);
+   html[data-theme] wins over the media query because its selector is more
+   specific than :root. The orange accent (--orange / --orange-deep) is the
+   same in both themes. */
+
+/* ---------- #23 THEME: explicit dark (default) ---------- */
+html[data-theme="dark"]{
+  --bg:#100f0d; --bg-2:#171512; --surface:#1a1916; --surface-2:#201e1a;
+  --ink:#f2efe7; --ink-80:rgba(242,239,231,.82); --ink-62:rgba(242,239,231,.64); --ink-45:rgba(242,239,231,.46);
+  --line:rgba(242,239,231,.16); --line-soft:rgba(242,239,231,.09);
+}
+html[data-theme="dark"] .msg.err{color:#ffb3a6}
+html[data-theme="dark"] .msg.ok{color:#9fe6b8}
+html[data-theme="dark"] .preview{background:#241a12}
+
+/* ---------- #23 THEME: explicit light ---------- */
+html[data-theme="light"]{
+  --bg:#f3f1ed; --bg-2:#eae7e0; --surface:#ffffff; --surface-2:#faf8f4;
+  --ink:#12110f; --ink-80:rgba(18,17,15,.80); --ink-62:rgba(18,17,15,.62); --ink-45:rgba(18,17,15,.45);
+  --line:rgba(18,17,15,.14); --line-soft:rgba(18,17,15,.08);
+}
+html[data-theme="light"] .msg.err{color:#8f1d12}
+html[data-theme="light"] .msg.ok{color:#145c2e}
+html[data-theme="light"] .preview{background:#fff8f3}
+
+/* ---------- #88 FONT SIZE ---------- */
+html[data-fontsize="large"] body{font-size:18px}
+html[data-fontsize="large"] input, html[data-fontsize="large"] select, html[data-fontsize="large"] textarea{font-size:17px}
+html[data-fontsize="large"] .row-item .body p{font-size:16px}
+
+/* ---------- #89 REDUCE MOTION ---------- */
+html[data-motion="reduce"] *{animation:none !important;transition:none !important;scroll-behavior:auto !important}
+
+/* ---------- header tools: search + bell + theme ---------- */
+.sh-header-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sh-header-tools .signout{position:relative}
+.sh-search-wrap{position:relative;flex:1;min-width:180px;max-width:320px}
+.sh-search-wrap input{margin-bottom:0;padding:9px 12px;font-size:14px}
+.sh-search-results{position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 40px -18px rgba(0,0,0,.45);z-index:80;max-height:380px;overflow-y:auto;padding:6px}
+.sh-search-group{padding:4px 0}
+.sh-search-head{font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-45);padding:8px 10px 4px}
+.sh-search-item{display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:10px;cursor:pointer;font-size:14px;line-height:1.4}
+.sh-search-item:hover{background:var(--surface-2)}
+.sh-search-item .avatar{width:32px;height:32px;font-size:13px}
+.sh-bell-wrap{position:relative}
+.sh-badge{position:absolute;top:-7px;right:-7px;min-width:19px;height:19px;border-radius:999px;background:var(--orange);color:#fff;font-size:11px;font-weight:800;display:inline-grid;place-items:center;padding:0 5px}
+.sh-bell-panel{position:absolute;top:calc(100% + 8px);right:0;width:min(360px,calc(100vw - 32px));background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 40px -18px rgba(0,0,0,.45);z-index:80;max-height:420px;overflow-y:auto;padding:10px 12px}
+.sh-bell-head{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 4px 10px}
+.sh-notif{padding:10px;border-radius:12px;cursor:pointer;border:1px solid transparent}
+.sh-notif:hover{background:var(--surface-2)}
+.sh-notif.unread{border-color:var(--orange);background:rgba(242,101,34,.06)}
+.sh-notif b{font-size:14px}
+.sh-notif p{margin:4px 0 0;font-size:13.5px;color:var(--ink-80)}
+.sh-notif .meta{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-45);margin-top:4px}
+
+/* ---------- #86 call / WhatsApp links ---------- */
+.sh-call-links{white-space:nowrap}
+.sh-call-links a{color:var(--orange-deep);font-weight:700;text-decoration:none;margin-left:10px}
+.sh-call-links a:hover{text-decoration:underline}
+
+/* ---------- #16 / #34 gallery grid ---------- */
+.sh-gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.sh-photo{margin:0;background:var(--surface-2);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.sh-photo img{display:block;width:100%;height:180px;object-fit:cover}
+.sh-photo figcaption{padding:10px 12px;font-size:13.5px;line-height:1.5}
+.sh-photo figcaption .btn{margin-top:8px}
+
 </style>
 </head>
 <body>
@@ -155,6 +317,24 @@
       <span id="whoRole">…</span>
       <span class="chip orange" id="whoDoor" style="margin-left:6px">…</span>
     </div>
+<!-- Paste inside <div class="container top-in">, BEFORE the Home link (after #whoDoor / .who block).
+     The bell + search + theme toggle sit next to Sign out. -->
+<div class="sh-header-tools">
+  <div class="sh-search-wrap">
+    <input id="sh_globalSearch" type="search" placeholder="Search members, announcements, events, files…" autocomplete="off" aria-label="Global search" />
+    <div class="sh-search-results" id="sh_searchResults" hidden></div>
+  </div>
+  <div class="sh-bell-wrap">
+    <button class="signout" type="button" id="sh_bellBtn" aria-label="Notifications">&#128276;<span class="sh-badge" id="sh_bellBadge" hidden>0</span></button>
+    <div class="sh-bell-panel" id="sh_bellPanel" hidden>
+      <div class="sh-bell-head"><b>Notifications</b><button class="btn ghost small" type="button" id="sh_bellMarkAll">Mark all read</button></div>
+      <div id="sh_bellList"><p class="empty">Loading…</p></div>
+    </div>
+  </div>
+  <button class="signout" type="button" id="sh_themeBtn" aria-label="Switch theme">&#127769; Dark</button>
+</div>
+
+<!-- ================= DASHBOARD QUICK ACTIONS ================= -->
     <a class="signout" href="../">&larr; Home</a>
     <button class="signout" type="button" id="signOutBtn">Sign out</button>
   </div>
@@ -166,6 +346,9 @@
     <button role="tab" data-tab="members" aria-selected="false">Members</button>
     <button role="tab" data-tab="messages" aria-selected="false">Messages <span class="badge" id="msgBadge" hidden>0</span></button>
     <button role="tab" data-tab="announcements" aria-selected="false">Announcements</button>
+    <button role="tab" data-tab="events" aria-selected="false" id="tabEvents">Events</button>
+    <button role="tab" data-tab="finance" aria-selected="false" id="tabFinance">Finance</button>
+    <button role="tab" data-tab="club" aria-selected="false" id="tabClub">Club</button>
     <button role="tab" data-tab="applicants" aria-selected="false" id="tabApplicants">Interested Applicants <span class="badge" id="appBadge" hidden>0</span></button>
     <button role="tab" data-tab="create" aria-selected="false" id="tabCreate">Create Account</button>
     <button role="tab" data-tab="admin" aria-selected="false" id="tabAdmin">Admin</button>
@@ -196,6 +379,45 @@
         <div class="stat"><b id="statUnread">–</b><span>Unread messages</span></div>
         <div class="stat"><b id="statAnn">–</b><span>Announcements</span></div>
       </div>
+<!-- Paste inside <section id="tab-dashboard">, after the stat-grid (before #needsAttention). -->
+<div class="card" id="sh_quickActions">
+  <h2 class="sec" style="margin-top:0">Quick <span class="serif-i">actions</span></h2>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn small" type="button" id="sh_qaMsgAll" hidden>Message all</button>
+    <button class="btn small" type="button" id="sh_qaNewEvent" hidden>New event</button>
+    <button class="btn small" type="button" id="sh_qaBackup" hidden>Download backup</button>
+    <button class="btn ghost small sh-copy-join" type="button">Copy Join link</button>
+  </div>
+  <p class="muted" style="margin:10px 0 0">Buttons only appear if your role can use them.</p>
+</div>
+
+<!-- ================= CLUB GALLERY ================= -->
+<!-- #64 — next event countdown. Insert inside #tab-dashboard, after the stat-grid. -->
+<div class="card" id="ev_countdownCard">
+  <h2 class="sec" style="margin-top:0">Next <span class="serif-i">event</span></h2>
+  <div id="ev_countdownBody"><p class="empty">Loading…</p></div>
+</div>
+
+<!-- #21 — my attendance record (own %). Insert inside #tab-dashboard, after the countdown card. -->
+<div class="card" id="ev_myAttCard">
+  <h2 class="sec" style="margin-top:0">My <span class="serif-i">attendance</span></h2>
+  <div id="ev_myAttBody"><p class="empty">Loading…</p></div>
+</div>
+
+<!-- #85 — my week at a glance. Insert inside #tab-dashboard, after the attendance card. -->
+<div class="card" id="ev_weekCard">
+  <h2 class="sec" style="margin-top:0">My week at a <span class="serif-i">glance</span></h2>
+  <div id="ev_weekBody"><p class="empty">Loading…</p></div>
+</div>
+<div class="card" id="eg_dashTasksCard">
+  <h2 class="sec" style="margin-top:0">My <span class="serif-i">tasks</span></h2>
+  <div id="eg_dashTaskList"><p class="empty">Loading your tasks…</p></div>
+</div>
+<div class="card" id="pp_trophyDashCard">
+  <h2 class="sec" style="margin-top:0">Trophy <span class="serif-i">wall</span></h2>
+  <p class="muted" style="margin-top:-6px">The club’s wins, newest first.</p>
+  <div id="pp_trophyDashList"><p class="empty">Loading trophy wall…</p></div>
+</div>
 
       <div class="card" id="needsAttention" hidden>
         <h2 class="sec" style="margin-top:0">Needs <span class="serif-i">attention</span></h2>
@@ -227,7 +449,7 @@
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
           <button class="btn ghost small" type="button" id="memberFilteredCsvBtn" hidden>Download these (CSV)</button>
-          <p class="muted" style="margin:0">Search, filter and sort the member list. Only the Main Admin can search by login ID or download a CSV of the results.</p>
+          <p class="muted" style="margin:0">Search, filter and sort the member list. Only the Main Admin can search by login ID. Main Admin and Second Admin can download a CSV of the results.</p>
         </div>
       </div>
       <div id="memberList"><p class="empty">Loading members…</p></div>
@@ -248,6 +470,14 @@
           <input id="dmSubject" type="text" placeholder="e.g. Costume fitting on Friday" />
           <label for="dmBody">Message</label>
           <textarea id="dmBody" placeholder="Write your message…" required></textarea>
+<div id="eg_templateBox">
+  <label for="eg_templateSel">Saved reply</label>
+  <select id="eg_templateSel"><option value="">Use a saved reply…</option></select>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+    <button class="btn ghost small" type="button" id="eg_templateSaveBtn">Save current message as template</button>
+  </div>
+  <div class="msg" id="eg_templateMsg" role="alert"></div>
+</div>
           <button class="btn" type="submit" id="dmSendBtn">Send message</button>
           <div class="msg" id="dmMsg" role="alert"></div>
         </form>
@@ -326,7 +556,7 @@
             </div>
           </div>
           <div id="annScheduleBox" hidden>
-            <label for="annSchedWhen">Schedule for later (Main Admin only)</label>
+            <label for="annSchedWhen">Schedule for later (Main Admin and Second Admin)</label>
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px">
               <input id="annSchedWhen" type="datetime-local" style="flex:1;min-width:200px;margin:0" />
               <button class="btn ghost small" type="button" id="annSchedBtn">Schedule announcement</button>
@@ -335,6 +565,14 @@
             <div id="schedList"><p class="empty">Nothing scheduled.</p></div>
           </div>
           <button class="btn" type="submit" id="annPostBtn">Post announcement</button>
+<!-- Paste inside the #announcePostCard form, right AFTER the Post button
+     (<button id="annPostBtn">) — the coordinator adds the button; the preview
+     box goes directly below it, before #annMsg. Same UI for Main Admin and
+     for President/VP (#69 and #76 — both can already post announcements). -->
+<button class="btn ghost" type="button" id="sh_annPreviewBtn" style="margin-left:8px">Preview</button>
+<div id="sh_annPreviewBox" hidden style="margin-top:14px"><p class="empty">Type your announcement above, then tap Preview.</p></div>
+
+<!-- ================= SETTINGS CARDS ================= -->
           <div class="msg" id="annMsg" role="alert"></div>
         </form>
       </div>
@@ -343,6 +581,524 @@
         <input id="annSearch" type="search" placeholder="Search announcements…" autocomplete="off" />
       </div>
       <div id="announceList"><p class="empty">Loading announcements…</p></div>
+    </section>
+
+<section class="tab" id="tab-events" role="tabpanel" hidden>
+  <h1 class="page">Events &amp; <em>shows</em></h1>
+  <p class="lede">Auditions, shows, workshops and rehearsals — RSVP, check the calendar, and see who is coming.</p>
+
+  <div class="msg" id="ev_eventMsg" role="alert"></div>
+
+  <!-- #1 / #7 / #10 — create event (Main Admin, Second Admin, President, VP).
+       Hidden by JS for everyone else. -->
+  <div class="card" id="ev_createCard" hidden>
+    <h2 class="sec" style="margin-top:0">Create an <span class="serif-i">event</span></h2>
+    <form id="ev_eventForm" novalidate>
+      <div class="grid2">
+        <div>
+          <label for="ev_evTitle">Event title</label>
+          <input id="ev_evTitle" maxlength="120" placeholder="e.g. Narcissa — Annual Fashion Show" />
+        </div>
+        <div>
+          <label for="ev_evKind">Kind</label>
+          <select id="ev_evKind">
+            <option value="show">Show</option>
+            <option value="audition">Audition</option>
+            <option value="workshop">Workshop</option>
+            <option value="rehearsal">Rehearsal</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div>
+          <label for="ev_evStart">Starts</label>
+          <input id="ev_evStart" type="datetime-local" />
+        </div>
+        <div>
+          <label for="ev_evEnd">Ends</label>
+          <input id="ev_evEnd" type="datetime-local" />
+        </div>
+        <div>
+          <label for="ev_evVenue">Venue</label>
+          <input id="ev_evVenue" maxlength="120" placeholder="e.g. REVA Amphitheatre" />
+        </div>
+        <div>
+          <label for="ev_evPoster">Poster (image, optional)</label>
+          <input id="ev_evPoster" type="file" accept="image/*" />
+        </div>
+      </div>
+      <label for="ev_evDesc">Description</label>
+      <textarea id="ev_evDesc" maxlength="2000" placeholder="What happens, who should come, what to bring…"></textarea>
+      <button class="btn" type="submit" id="ev_evSaveBtn">Create event</button>
+    </form>
+  </div>
+
+  <!-- #1 / #18 — event list with RSVP counts, RSVP buttons and detail panels
+       (RSVP list, attendance marking, availability, duty roster, lineup, notes). -->
+  <h2 class="sec">All <span class="serif-i">events</span></h2>
+  <div id="ev_eventList"><p class="empty">Loading events…</p></div>
+
+  <!-- #15 / #18 — shared club calendar: events + task deadlines, chronological. -->
+  <h2 class="sec">Club <span class="serif-i">calendar</span></h2>
+  <div id="ev_calList"><p class="empty">Loading calendar…</p></div>
+
+  <!-- #33 — attendance reports, read-only (Second Admin + privileged; hidden by JS otherwise). -->
+  <div class="card" id="ev_reportsCard" hidden>
+    <h2 class="sec" style="margin-top:0">Attendance <span class="serif-i">reports</span></h2>
+    <div id="ev_reportList"><p class="empty">Loading reports…</p></div>
+  </div>
+
+  <!-- #46 / #53 — rehearsal room booking (Main Admin + Second Admin; hidden by JS otherwise). -->
+  <div class="card" id="ev_roomCard" hidden>
+    <h2 class="sec" style="margin-top:0">Rehearsal room <span class="serif-i">booking</span></h2>
+    <form id="ev_roomForm" novalidate>
+      <div class="grid2">
+        <div>
+          <label for="ev_roomName">Room</label>
+          <input id="ev_roomName" maxlength="80" placeholder="e.g. Dance Studio 2" />
+        </div>
+        <div>
+          <label for="ev_roomPurpose">Purpose</label>
+          <input id="ev_roomPurpose" maxlength="80" placeholder="e.g. Runway rehearsal" />
+        </div>
+        <div>
+          <label for="ev_roomStart">From</label>
+          <input id="ev_roomStart" type="datetime-local" />
+        </div>
+        <div>
+          <label for="ev_roomEnd">To</label>
+          <input id="ev_roomEnd" type="datetime-local" />
+        </div>
+      </div>
+      <button class="btn" type="submit">Book room</button>
+    </form>
+    <div class="msg" id="ev_roomMsg" role="alert"></div>
+    <div id="ev_roomList" style="margin-top:14px"><p class="empty">Loading bookings…</p></div>
+  </div>
+
+  <!-- #54 — show video archive (everyone watches; Second Admin adds/removes). -->
+  <div class="card">
+    <h2 class="sec" style="margin-top:0">Show video <span class="serif-i">archive</span></h2>
+    <form id="ev_videoForm" novalidate hidden>
+      <div class="grid2">
+        <div>
+          <label for="ev_videoTitle">Video title</label>
+          <input id="ev_videoTitle" maxlength="120" placeholder="e.g. Annual Show 2025 — Finale" />
+        </div>
+        <div>
+          <label for="ev_videoShow">Show name</label>
+          <input id="ev_videoShow" maxlength="120" placeholder="e.g. Annual Fashion Show" />
+        </div>
+        <div>
+          <label for="ev_videoYear">Year</label>
+          <input id="ev_videoYear" type="number" min="2000" max="2100" placeholder="2025" />
+        </div>
+        <div>
+          <label for="ev_videoUrl">Video link</label>
+          <input id="ev_videoUrl" type="url" maxlength="500" placeholder="https://…" />
+        </div>
+      </div>
+      <button class="btn" type="submit">Add video</button>
+    </form>
+    <div class="msg" id="ev_videoMsg" role="alert"></div>
+    <div id="ev_videoList" style="margin-top:14px"><p class="empty">Loading videos…</p></div>
+  </div>
+</section>
+    <section class="tab" id="tab-finance" role="tabpanel" hidden>
+<!-- Coordinator: this is the whole content of the new <section class="tab" id="tab-finance">. -->
+<h1 class="page">Club <em>finances</em></h1>
+<p class="lede">Membership fees, the club budget, sponsors and merch orders. Fees, budget and sponsors are Main Admin only; the President and Vice Presidents can see the fees pending list (read-only) and approve merch orders.</p>
+
+<!-- Fees &amp; dues (#3, #36) -->
+<div class="card" id="fin_feeSection">
+  <h2 class="sec" style="margin-top:0">Fees &amp; <span class="serif-i">dues</span></h2>
+  <p class="muted" style="margin-top:-6px">Club year: <b id="fin_feeYearLabel">…</b></p>
+
+  <form id="fin_feeForm" novalidate>
+    <div class="grid2">
+      <div>
+        <label for="fin_feeMember">Member</label>
+        <select id="fin_feeMember" required></select>
+      </div>
+      <div>
+        <label for="fin_feeYear">Club year</label>
+        <input id="fin_feeYear" type="text" autocomplete="off" placeholder="e.g. 2026-27" required />
+      </div>
+      <div>
+        <label for="fin_feeAmount">Amount (&#8377;)</label>
+        <input id="fin_feeAmount" type="number" min="0" step="1" placeholder="e.g. 500" required />
+      </div>
+      <div>
+        <label for="fin_feePaidAt">Paid on</label>
+        <input id="fin_feePaidAt" type="date" />
+      </div>
+    </div>
+    <label for="fin_feeNote">Note</label>
+    <input id="fin_feeNote" type="text" autocomplete="off" placeholder="e.g. Paid in cash at rehearsal" />
+    <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-family:inherit;font-size:14.5px;font-weight:400;color:var(--ink-80)"><input type="checkbox" id="fin_feePaid" style="width:auto;margin:0" checked /> Paid</label>
+    <div style="margin-top:12px">
+      <button class="btn small" type="submit" id="fin_feeSubmit">Save fee record</button>
+    </div>
+    <div class="msg" id="fin_feeMsg" role="alert"></div>
+  </form>
+
+  <h2 class="sec">Pending — <span class="serif-i">not paid yet</span></h2>
+  <p class="muted" style="margin-top:-6px"><span id="fin_pendingCount">Checking…</span></p>
+  <div id="fin_pendingList"><p class="empty">Loading fees…</p></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+    <button class="btn small" type="button" id="fin_remindBtn">Send fee reminder to all unpaid members</button>
+  </div>
+  <p class="muted" style="margin:10px 0 0">Each reminder is a direct message in the member's portal inbox, from you, with the subject “Membership fee reminder”.</p>
+
+  <h2 class="sec">Paid</h2>
+  <div id="fin_paidList"><p class="empty">Loading fees…</p></div>
+</div>
+
+<!-- Budget tracker (#4) -->
+<div class="card" id="fin_budgetSection">
+  <h2 class="sec" style="margin-top:0">Budget <span class="serif-i">tracker</span></h2>
+  <div class="stat-grid">
+    <div class="stat"><b id="fin_budgetBalance">–</b><span>Running balance</span></div>
+    <div class="stat"><b id="fin_budgetIncome">–</b><span>Total income</span></div>
+    <div class="stat"><b id="fin_budgetExpense">–</b><span>Total expenses</span></div>
+  </div>
+  <form id="fin_budgetForm" novalidate>
+    <div class="grid2">
+      <div>
+        <label for="fin_budgetKind">Type</label>
+        <select id="fin_budgetKind">
+          <option value="income">Income</option>
+          <option value="expense">Expense</option>
+        </select>
+      </div>
+      <div>
+        <label for="fin_budgetDate">Date</label>
+        <input id="fin_budgetDate" type="date" required />
+      </div>
+      <div>
+        <label for="fin_budgetLabel">Label</label>
+        <input id="fin_budgetLabel" type="text" autocomplete="off" placeholder="e.g. Sponsorship — Element7" required />
+      </div>
+      <div>
+        <label for="fin_budgetAmount">Amount (&#8377;)</label>
+        <input id="fin_budgetAmount" type="number" min="0" step="1" placeholder="e.g. 10000" required />
+      </div>
+    </div>
+    <label for="fin_budgetNote">Note</label>
+    <input id="fin_budgetNote" type="text" autocomplete="off" placeholder="Optional note" />
+    <div style="margin-top:12px">
+      <button class="btn small" type="submit">Add entry</button>
+    </div>
+    <div class="msg" id="fin_budgetMsg" role="alert"></div>
+  </form>
+  <div id="fin_budgetList" style="margin-top:16px"><p class="empty">Loading budget…</p></div>
+</div>
+
+<!-- Sponsors (#5) -->
+<div class="card" id="fin_sponsorSection">
+  <h2 class="sec" style="margin-top:0">Sponsors</h2>
+  <form id="fin_sponsorForm" novalidate>
+    <div class="grid2">
+      <div>
+        <label for="fin_sponsorName">Sponsor name</label>
+        <input id="fin_sponsorName" type="text" autocomplete="off" placeholder="e.g. Element7" required />
+      </div>
+      <div>
+        <label for="fin_sponsorContact">Contact person</label>
+        <input id="fin_sponsorContact" type="text" autocomplete="off" placeholder="e.g. Priya Nair" />
+      </div>
+      <div>
+        <label for="fin_sponsorEmail">Contact email</label>
+        <input id="fin_sponsorEmail" type="email" autocomplete="off" placeholder="sponsor@example.com" />
+      </div>
+      <div>
+        <label for="fin_sponsorPhone">Contact phone</label>
+        <input id="fin_sponsorPhone" type="tel" autocomplete="off" placeholder="10-digit mobile number" />
+      </div>
+      <div>
+        <label for="fin_sponsorDeal">Deal value (&#8377;)</label>
+        <input id="fin_sponsorDeal" type="number" min="0" step="1" placeholder="e.g. 25000" />
+      </div>
+      <div>
+        <label for="fin_sponsorStatus">Status</label>
+        <select id="fin_sponsorStatus">
+          <option value="talking">Talking</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="done">Done</option>
+        </select>
+      </div>
+    </div>
+    <label for="fin_sponsorNote">Note</label>
+    <input id="fin_sponsorNote" type="text" autocomplete="off" placeholder="e.g. Logo on the finale backdrop" />
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+      <button class="btn small" type="submit" id="fin_sponsorSubmit">Add sponsor</button>
+      <button class="btn ghost small" type="button" id="fin_sponsorCancel" hidden>Cancel edit</button>
+    </div>
+    <div class="msg" id="fin_sponsorMsg" role="alert"></div>
+  </form>
+  <div id="fin_sponsorList" style="margin-top:16px"><p class="empty">Loading sponsors…</p></div>
+</div>
+
+<!-- Merch orders (#43, #55) -->
+<div class="card" id="fin_merchSection">
+  <h2 class="sec" style="margin-top:0">Merch <span class="serif-i">orders</span></h2>
+  <form id="fin_merchForm" novalidate>
+    <div class="grid2">
+      <div>
+        <label for="fin_merchItem">Item</label>
+        <input id="fin_merchItem" type="text" autocomplete="off" placeholder="e.g. Club T-shirt" required />
+      </div>
+      <div>
+        <label for="fin_merchSize">Size</label>
+        <select id="fin_merchSize">
+          <option value="XS">XS</option>
+          <option value="S">S</option>
+          <option value="M" selected>M</option>
+          <option value="L">L</option>
+          <option value="XL">XL</option>
+          <option value="XXL">XXL</option>
+          <option value="One size">One size</option>
+        </select>
+      </div>
+      <div>
+        <label for="fin_merchQty">Quantity</label>
+        <input id="fin_merchQty" type="number" min="1" step="1" value="1" required />
+      </div>
+      <div>
+        <label for="fin_merchNote">Note</label>
+        <input id="fin_merchNote" type="text" autocomplete="off" placeholder="e.g. Black, name on the back" />
+      </div>
+    </div>
+    <div style="margin-top:12px">
+      <button class="btn small" type="submit">Request merch</button>
+    </div>
+    <div class="msg" id="fin_merchMsg" role="alert"></div>
+  </form>
+  <div id="fin_merchList" style="margin-top:16px"><p class="empty">Loading merch orders…</p></div>
+</div>
+
+<!-- One-click full backup (#71) -->
+<div class="card" id="fin_backupSection">
+  <h2 class="sec" style="margin-top:0">Full <span class="serif-i">backup</span></h2>
+  <p class="muted" style="margin-top:-6px">One JSON download with members, applicants, events and finances (fees, budget entries, sponsors, merch orders). It never includes anyone's private direct messages.</p>
+  <button class="btn small" type="button" id="fin_backupBtn">Download full backup (JSON)</button>
+  <div class="msg" id="fin_backupMsg" role="alert"></div>
+</div>
+    </section>
+    <!-- ================= CLUB ================= -->
+    <section class="tab" id="tab-club" role="tabpanel" hidden>
+<div id="eg_clubTab">
+  <h1 class="page">Club <em>hub</em></h1>
+  <p class="lede">Polls, tasks, leave requests, suggestions, meeting notes, the officials thread, the social plan, the wall and song ideas — everything the club does together.</p>
+
+  <!-- #6 / #11 / #19 Polls & voting -->
+  <div class="card" id="eg_pollFormCard" hidden>
+    <h2 class="sec" style="margin-top:0">Create a <span class="serif-i">poll</span></h2>
+    <form id="eg_pollForm" novalidate>
+      <label for="eg_pollQ">Question</label>
+      <input id="eg_pollQ" type="text" placeholder="e.g. Theme for the next show?" />
+      <label for="eg_pollOpts">Options (comma-separated)</label>
+      <input id="eg_pollOpts" type="text" placeholder="e.g. Retro, Futuristic, Street style" />
+      <label for="eg_pollEnds">Voting ends (optional)</label>
+      <input id="eg_pollEnds" type="datetime-local" />
+      <button class="btn small" type="submit">Create poll</button>
+      <div class="msg" id="eg_pollMsg" role="alert"></div>
+    </form>
+  </div>
+  <div class="card">
+    <h2 class="sec" style="margin-top:0">Polls &amp; <span class="serif-i">voting</span></h2>
+    <p class="muted" style="margin-top:-6px">Vote while a poll is open. Results appear once you have voted, or when the poll closes.</p>
+    <div id="eg_pollList"><p class="empty">Loading polls…</p></div>
+  </div>
+
+  <!-- #12 / #40 Tasks -->
+  <div class="card" id="eg_taskFormCard" hidden>
+    <h2 class="sec" style="margin-top:0">Assign a <span class="serif-i">task</span></h2>
+    <form id="eg_taskForm" novalidate>
+      <label for="eg_taskTitle">Task</label>
+      <input id="eg_taskTitle" type="text" placeholder="e.g. Collect costumes from the store" />
+      <label for="eg_taskDesc">Details (optional)</label>
+      <textarea id="eg_taskDesc" placeholder="Anything the assignee needs to know…"></textarea>
+      <div class="grid2">
+        <div>
+          <label for="eg_taskAssignee">Assign to</label>
+          <select id="eg_taskAssignee"></select>
+        </div>
+        <div>
+          <label for="eg_taskDue">Deadline (optional)</label>
+          <input id="eg_taskDue" type="date" />
+        </div>
+      </div>
+      <button class="btn small" type="submit">Assign task</button>
+      <div class="msg" id="eg_taskMsg" role="alert"></div>
+    </form>
+  </div>
+  <div class="card">
+    <h2 class="sec" style="margin-top:0">Tasks</h2>
+    <p class="muted" style="margin-top:-6px">Your tasks first. If you can assign tasks, everyone else's are listed below too.</p>
+    <div id="eg_taskList"><p class="empty">Loading tasks…</p></div>
+  </div>
+
+  <!-- #20 / #32 / #35 Leave / absence requests -->
+  <div class="card">
+    <h2 class="sec" style="margin-top:0">Leave / <span class="serif-i">absence request</span></h2>
+    <form id="eg_leaveForm" novalidate>
+      <label for="eg_leaveEvent">Event you will miss</label>
+      <select id="eg_leaveEvent"><option value="">Loading events…</option></select>
+      <label for="eg_leaveReason">Reason</label>
+      <textarea id="eg_leaveReason" placeholder="e.g. Family function that evening"></textarea>
+      <button class="btn small" type="submit">Request leave</button>
+      <div class="msg" id="eg_leaveMsg" role="alert"></div>
+    </form>
+    <div id="eg_leaveList" style="margin-top:16px"><p class="empty">Loading leave requests…</p></div>
+  </div>
+
+  <!-- #22 / #57 Suggestion box -->
+  <div class="card">
+    <h2 class="sec" style="margin-top:0">Suggestion <span class="serif-i">box</span></h2>
+    <form id="eg_suggForm" novalidate>
+      <label for="eg_suggBody">Your idea</label>
+      <textarea id="eg_suggBody" placeholder="An idea for the club…"></textarea>
+      <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-family:inherit;font-size:14.5px;font-weight:400;color:var(--ink-80)"><input type="checkbox" id="eg_suggAnon" style="width:auto;margin:0" /> Send anonymously</label>
+      <button class="btn small" type="submit">Send suggestion</button>
+      <div class="msg" id="eg_suggMsg" role="alert"></div>
+    </form>
+  </div>
+  <div class="card" id="eg_suggListCard" hidden>
+    <h2 class="sec" style="margin-top:0">Suggestions <span class="serif-i">from members</span></h2>
+    <p class="muted" style="margin-top:-6px">Officials and admins only. Mark a suggestion planned or done as the club acts on it.</p>
+    <div id="eg_suggList"><p class="empty">Loading suggestions…</p></div>
+  </div>
+
+  <!-- #37 Meeting notes -->
+  <div class="card" id="eg_noteFormCard" hidden>
+    <h2 class="sec" style="margin-top:0">Write meeting <span class="serif-i">notes</span></h2>
+    <form id="eg_noteForm" novalidate>
+      <label for="eg_noteTitle">Meeting title</label>
+      <input id="eg_noteTitle" type="text" placeholder="e.g. Weekly officials meeting" />
+      <label for="eg_noteDate">Date</label>
+      <input id="eg_noteDate" type="date" />
+      <label for="eg_noteBody">Minutes</label>
+      <textarea id="eg_noteBody" placeholder="What was decided…"></textarea>
+      <button class="btn small" type="submit">Save notes</button>
+      <div class="msg" id="eg_noteMsg" role="alert"></div>
+    </form>
+  </div>
+  <div class="card" id="eg_noteListCard" hidden>
+    <h2 class="sec" style="margin-top:0">Meeting <span class="serif-i">notes</span></h2>
+    <p class="muted" style="margin-top:-6px">Visible to all officials.</p>
+    <div id="eg_noteList"><p class="empty">Loading meeting notes…</p></div>
+  </div>
+
+  <!-- #38 Officials group thread -->
+  <div class="card" id="eg_threadCard" hidden>
+    <h2 class="sec" style="margin-top:0">Officials <span class="serif-i">thread</span></h2>
+    <p class="muted" style="margin-top:-6px">One shared thread every official sees. Replies go to the whole officials group.</p>
+    <div id="eg_threadList"><p class="empty">Loading thread…</p></div>
+    <form id="eg_threadForm" novalidate style="margin-top:16px">
+      <label for="eg_threadBody">Reply to the officials thread</label>
+      <textarea id="eg_threadBody" placeholder="Write to all officials…"></textarea>
+      <button class="btn small" type="submit">Send to officials</button>
+      <div class="msg" id="eg_threadMsg" role="alert"></div>
+    </form>
+  </div>
+
+  <!-- #49 Social media planner -->
+  <div class="card" id="eg_socialFormCard" hidden>
+    <h2 class="sec" style="margin-top:0">Plan a <span class="serif-i">social post</span></h2>
+    <form id="eg_socialForm" novalidate>
+      <div class="grid2">
+        <div>
+          <label for="eg_socialPlatform">Platform</label>
+          <select id="eg_socialPlatform">
+            <option value="Instagram">Instagram</option>
+            <option value="YouTube">YouTube</option>
+            <option value="Facebook">Facebook</option>
+            <option value="Threads">Threads</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div>
+          <label for="eg_socialWhen">Scheduled for (optional)</label>
+          <input id="eg_socialWhen" type="datetime-local" />
+        </div>
+      </div>
+      <label for="eg_socialCaption">Caption</label>
+      <textarea id="eg_socialCaption" placeholder="Caption for the post…"></textarea>
+      <label for="eg_socialAssignee">Who posts it</label>
+      <select id="eg_socialAssignee"></select>
+      <button class="btn small" type="submit">Save post plan</button>
+      <div class="msg" id="eg_socialMsg" role="alert"></div>
+    </form>
+  </div>
+  <div class="card" id="eg_socialListCard" hidden>
+    <h2 class="sec" style="margin-top:0">Social media <span class="serif-i">plan</span></h2>
+    <div id="eg_socialList"><p class="empty">Loading the plan…</p></div>
+  </div>
+
+  <!-- #60 Club wall -->
+  <div class="card">
+    <h2 class="sec" style="margin-top:0">Club <span class="serif-i">wall</span></h2>
+    <form id="eg_wallForm" novalidate>
+      <label for="eg_wallBody">Share an update</label>
+      <textarea id="eg_wallBody" placeholder="What happened at rehearsal?"></textarea>
+      <label for="eg_wallFile">Photo (optional, max 5 MB)</label>
+      <input id="eg_wallFile" type="file" accept="image/*" />
+      <button class="btn small" type="submit">Post to the wall</button>
+      <div class="msg" id="eg_wallMsg" role="alert"></div>
+    </form>
+    <p class="muted">Officials can hide a post; only the Main Admin can delete one.</p>
+    <div id="eg_wallList" style="margin-top:16px"><p class="empty">Loading the wall…</p></div>
+  </div>
+
+  <!-- #62 Song / music suggestions -->
+  <div class="card">
+    <h2 class="sec" style="margin-top:0">Song <span class="serif-i">suggestions</span></h2>
+    <p class="muted" style="margin-top:-6px">Suggest a track for the next show. Everyone can see the list.</p>
+    <form id="eg_songForm" novalidate>
+      <div class="grid2">
+        <div>
+          <label for="eg_songTitle">Track title</label>
+          <input id="eg_songTitle" type="text" placeholder="e.g. Song name" />
+        </div>
+        <div>
+          <label for="eg_songArtist">Artist (optional)</label>
+          <input id="eg_songArtist" type="text" placeholder="e.g. Artist name" />
+        </div>
+      </div>
+      <label for="eg_songLink">Link (optional)</label>
+      <input id="eg_songLink" type="url" placeholder="https://…" />
+      <label for="eg_songNote">Why this track? (optional)</label>
+      <textarea id="eg_songNote" placeholder="e.g. Perfect for the finale walk"></textarea>
+      <button class="btn small" type="submit">Suggest song</button>
+      <div class="msg" id="eg_songMsg" role="alert"></div>
+    </form>
+    <div id="eg_songList" style="margin-top:16px"><p class="empty">Loading songs…</p></div>
+  </div>
+</div>
+<!-- Paste inside <section id="tab-club">. REQUIRES a Club tab (see note at top). -->
+<div class="card" id="sh_galleryUpload" hidden>
+  <h2 class="sec" style="margin-top:0">Add a <span class="serif-i">photo</span></h2>
+  <p class="muted" style="margin-top:-6px" id="sh_galleryHint">Uploads are for officials. Everyone in the club can view the photos.</p>
+  <label for="sh_galleryFile">Photo</label>
+  <input id="sh_galleryFile" type="file" accept="image/*" />
+  <label for="sh_galleryCaption">Caption</label>
+  <input id="sh_galleryCaption" type="text" placeholder="e.g. Rehearsal — winged finale practice" maxlength="120" />
+  <label for="sh_galleryEvent">Event (optional)</label>
+  <select id="sh_galleryEvent"><option value="">No event</option></select>
+  <button class="btn small" type="button" id="sh_galleryUploadBtn">Upload photo</button>
+  <div class="msg" id="sh_galleryMsg" role="alert"></div>
+</div>
+<div class="card">
+  <h2 class="sec" style="margin-top:0">Club <span class="serif-i">gallery</span></h2>
+  <div class="sh-gallery-grid" id="sh_galleryGrid"><p class="empty">Loading photos…</p></div>
+</div>
+
+<!-- ================= ANNOUNCEMENT PREVIEW ================= -->
+<div class="card" id="pp_extClubCard" hidden>
+  <h2 class="sec" style="margin-top:0">External contacts</h2>
+  <p class="muted" style="margin-top:-6px">Judges, choreographers, makeup artists and photographers the club works with. Visible to officials and admins only.</p>
+  <div id="pp_extClubList"><p class="empty">Loading contacts…</p></div>
+</div>
     </section>
 
     <!-- ================= INTERESTED APPLICANTS ================= -->
@@ -441,6 +1197,198 @@
         </div>
       </div>
 
+<!-- Coordinator: place this card inside #mainAdminTools (the Main Admin tools card area) in <section id="tab-admin">. Main Admin only. -->
+<div class="card" id="fin_emailCard">
+  <h2 class="sec" style="margin-top:0">Email a <span class="serif-i">filtered group</span></h2>
+  <p class="muted" style="margin-top:-6px">Opens your own mail app — the portal does not send email itself. Pick a group, copy the addresses or open a ready-to-send email with everyone in BCC.</p>
+  <label for="fin_emailFilter">Send to</label>
+  <select id="fin_emailFilter">
+    <option value="all">All members</option>
+    <option value="officials">Only officials</option>
+    <option value="unpaid">Only unpaid members (current club year)</option>
+    <option value="vertical">Only one vertical</option>
+  </select>
+  <div id="fin_emailVerticalWrap" hidden>
+    <label for="fin_emailVertical">Vertical</label>
+    <select id="fin_emailVertical"></select>
+    <p class="field-hint" id="fin_emailVerticalNote">Member profiles do not store a vertical, so this filter cannot build an address list yet — see the finance notes for what is missing.</p>
+  </div>
+  <label for="fin_emailSubject">Subject</label>
+  <input id="fin_emailSubject" type="text" autocomplete="off" value="REVA Fashion Club" />
+  <p class="muted" style="margin:6px 0"><span id="fin_emailCount">0 recipients</span></p>
+  <label for="fin_emailList">Email addresses</label>
+  <textarea id="fin_emailList" readonly rows="4" placeholder="No recipients yet."></textarea>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+    <button class="btn small" type="button" id="fin_emailCopyBtn">Copy email addresses</button>
+    <button class="btn ghost small" type="button" id="fin_emailComposeBtn">Compose email</button>
+  </div>
+  <div class="msg" id="fin_emailMsg" role="alert"></div>
+</div>
+<div class="card" id="pp_alumniCard" hidden>
+  <h2 class="sec" style="margin-top:0">Alumni</h2>
+  <p class="muted" style="margin-top:-6px">Members marked as alumni when they leave or graduate. Alumni keep read-only access to the portal — this flag only records their status, it does not change what they can sign in to.</p>
+  <div id="pp_alumniList"><p class="empty">Loading alumni…</p></div>
+</div>
+<div class="card" id="pp_yearCard" hidden>
+  <h2 class="sec" style="margin-top:0">Membership year &amp; renewals</h2>
+  <p class="muted" style="margin-top:-6px">Current club year: <b id="pp_clubYearNow">—</b>. Members whose membership year is not the current year get an “Expired” chip in the Admin list below.</p>
+  <label for="pp_clubYearInput">Club year</label>
+  <input id="pp_clubYearInput" type="number" min="2020" max="2100" step="1" placeholder="e.g. 2026" />
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn small" type="button" id="pp_clubYearSaveBtn">Set club year</button>
+    <button class="btn ghost small" type="button" id="pp_bulkRenewBtn">Renew all members for this year</button>
+  </div>
+  <p class="muted" id="pp_renewProgress" style="margin:10px 0 0"></p>
+  <div class="msg" id="pp_yearMsg" role="alert"></div>
+</div>
+<div class="card" id="pp_costumeCard" hidden>
+  <h2 class="sec" style="margin-top:0">Costume &amp; props inventory</h2>
+  <p class="muted" style="margin-top:-6px">List every costume or prop, who has it, and whether it has been returned.</p>
+  <div class="grid2">
+    <div>
+      <label for="pp_costName">Costume / prop name</label>
+      <input id="pp_costName" type="text" placeholder="e.g. Red finale gown" />
+    </div>
+    <div>
+      <label for="pp_costSize">Size</label>
+      <input id="pp_costSize" type="text" placeholder="e.g. M" />
+    </div>
+  </div>
+  <label for="pp_costDesc">Description</label>
+  <input id="pp_costDesc" type="text" placeholder="Short description" />
+  <label for="pp_costNote">Note</label>
+  <input id="pp_costNote" type="text" placeholder="e.g. Needs a hem repair" />
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn small" type="button" id="pp_costAddBtn">Add costume / prop</button>
+  </div>
+  <div class="msg" id="pp_costumeMsg" role="alert"></div>
+  <div id="pp_costumeList" style="margin-top:14px"><p class="empty">Loading costumes…</p></div>
+</div>
+<div class="card" id="pp_trophyCard" hidden>
+  <h2 class="sec" style="margin-top:0">Trophy wall</h2>
+  <p class="muted" style="margin-top:-6px">Record the club’s wins. Everyone in the portal sees them on the dashboard, and the public website shows them too.</p>
+  <div class="grid2">
+    <div>
+      <label for="pp_trophyTitle">Title</label>
+      <input id="pp_trophyTitle" type="text" placeholder="e.g. Best Fashion Team" />
+    </div>
+    <div>
+      <label for="pp_trophyYear">Year</label>
+      <input id="pp_trophyYear" type="number" min="2000" max="2100" step="1" placeholder="e.g. 2026" />
+    </div>
+  </div>
+  <label for="pp_trophyEvent">Event name</label>
+  <input id="pp_trophyEvent" type="text" placeholder="e.g. Sargam 2026" />
+  <label for="pp_trophyPhoto">Photo (optional)</label>
+  <input id="pp_trophyPhoto" type="file" accept="image/*" />
+  <label for="pp_trophyNote">Note</label>
+  <input id="pp_trophyNote" type="text" placeholder="e.g. Won with the winged finale" />
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn small" type="button" id="pp_trophyAddBtn">Add to trophy wall</button>
+  </div>
+  <div class="msg" id="pp_trophyMsg" role="alert"></div>
+  <div id="pp_trophyList" style="margin-top:14px"><p class="empty">Loading trophies…</p></div>
+</div>
+<div class="card" id="pp_guestCard" hidden>
+  <h2 class="sec" style="margin-top:0">Guest &amp; judge invites</h2>
+  <p class="muted" style="margin-top:-6px">Invite outside models and judges for a show, and track who confirmed.</p>
+  <label for="pp_guestEventSel">Event</label>
+  <select id="pp_guestEventSel"><option value="">Loading events…</option></select>
+  <div class="grid2">
+    <div>
+      <label for="pp_guestName">Name</label>
+      <input id="pp_guestName" type="text" placeholder="Guest name" />
+    </div>
+    <div>
+      <label for="pp_guestKind">Kind</label>
+      <select id="pp_guestKind">
+        <option value="model">Model</option>
+        <option value="judge">Judge</option>
+        <option value="guest">Guest</option>
+      </select>
+    </div>
+  </div>
+  <label for="pp_guestContact">Contact</label>
+  <input id="pp_guestContact" type="text" placeholder="Email or mobile" />
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn small" type="button" id="pp_guestAddBtn">Invite guest</button>
+  </div>
+  <div class="msg" id="pp_guestMsg" role="alert"></div>
+  <div id="pp_guestList" style="margin-top:14px"><p class="empty">Pick an event to see its guests.</p></div>
+</div>
+<div class="card" id="pp_constCard" hidden>
+  <h2 class="sec" style="margin-top:0">Club constitution</h2>
+  <p class="muted" style="margin-top:-6px">Edit the rules page every member sees in their Settings. Only the Main Admin can edit it.</p>
+  <label for="pp_constText">Constitution text</label>
+  <textarea id="pp_constText" placeholder="The rules of the REVA Fashion Club…" style="min-height:180px"></textarea>
+  <button class="btn small" type="button" id="pp_constSaveBtn">Save constitution</button>
+  <div class="msg" id="pp_constMsg" role="alert"></div>
+</div>
+<div class="card" id="pp_roleReqCard" hidden>
+  <h2 class="sec" style="margin-top:0">Role-change requests</h2>
+  <p class="muted" style="margin-top:-6px">Members asking for a different role, with their reason. Approving changes the member’s role; declining just records the decision.</p>
+  <div id="pp_roleReqList"><p class="empty">Loading requests…</p></div>
+  <div class="msg" id="pp_roleReqMsg" role="alert"></div>
+</div>
+<div class="card" id="pp_bulkRoleCard" hidden>
+  <h2 class="sec" style="margin-top:0">Bulk edit roles</h2>
+  <p class="muted" style="margin-top:-6px">Tick several members, pick a role, and apply it to all of them at once. The Main Admin account itself is never listed here.</p>
+  <div id="pp_bulkRoleList"><p class="empty">Loading members…</p></div>
+  <label for="pp_bulkRoleSel">New role for the ticked members</label>
+  <select id="pp_bulkRoleSel"></select>
+  <button class="btn small" type="button" id="pp_bulkRoleApplyBtn">Apply role to ticked members</button>
+  <div class="msg" id="pp_bulkRoleMsg" role="alert"></div>
+</div>
+<div class="card" id="pp_recycleCard" hidden>
+  <h2 class="sec" style="margin-top:0">Recycle bin</h2>
+  <p class="muted" style="margin-top:-6px">Deleted members and announcements stay here for 7 days, then they can no longer be restored. Restoring puts the member or announcement back exactly as it was.</p>
+  <p class="muted"><b>Please note:</b> the portal’s existing “Remove account” and “Delete announcement” buttons still hard-delete. Until those are changed, use the two “Move to recycle bin” buttons below instead — they soft-delete, so the item lands here and can be restored.</p>
+  <h2 class="sec">Deleted <span class="serif-i">members</span></h2>
+  <div id="pp_recycleMemberList"><p class="empty">Loading recycle bin…</p></div>
+  <h2 class="sec">Deleted <span class="serif-i">messages &amp; announcements</span></h2>
+  <div id="pp_recycleMsgList"><p class="empty">Loading recycle bin…</p></div>
+  <h2 class="sec">Move to <span class="serif-i">recycle bin</span></h2>
+  <label for="pp_rbMemberSel">Member to soft-delete</label>
+  <select id="pp_rbMemberSel"><option value="">Loading members…</option></select>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+    <button class="btn ghost small" type="button" id="pp_rbMemberBtn">Move member to recycle bin</button>
+  </div>
+  <label for="pp_rbAnnSel">Announcement to soft-delete</label>
+  <select id="pp_rbAnnSel"><option value="">Loading announcements…</option></select>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn ghost small" type="button" id="pp_rbAnnBtn">Move announcement to recycle bin</button>
+  </div>
+  <div class="msg" id="pp_recycleMsg" role="alert"></div>
+</div>
+<div class="card" id="pp_extCard" hidden>
+  <h2 class="sec" style="margin-top:0">External contacts directory</h2>
+  <p class="muted" style="margin-top:-6px">Judges, choreographers, makeup artists and photographers outside the club. Officials can view this directory from the Club tab; only the Main Admin can add or remove entries.</p>
+  <div class="grid2">
+    <div>
+      <label for="pp_extName">Name</label>
+      <input id="pp_extName" type="text" placeholder="Contact name" />
+    </div>
+    <div>
+      <label for="pp_extCat">Category</label>
+      <select id="pp_extCat">
+        <option value="judge">Judge</option>
+        <option value="choreographer">Choreographer</option>
+        <option value="makeup artist">Makeup artist</option>
+        <option value="photographer">Photographer</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+  </div>
+  <label for="pp_extContact">Contact</label>
+  <input id="pp_extContact" type="text" placeholder="Email or mobile" />
+  <label for="pp_extNote">Note</label>
+  <input id="pp_extNote" type="text" placeholder="e.g. Judged Sargam 2025" />
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn small" type="button" id="pp_extAddBtn">Add contact</button>
+  </div>
+  <div class="msg" id="pp_extMsg" role="alert"></div>
+  <div id="pp_extList" style="margin-top:14px"><p class="empty">Loading contacts…</p></div>
+</div>
       <div class="card" id="bulkBar" hidden>
         <span id="bulkCount">0 members selected</span>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
@@ -525,6 +1473,11 @@
         <p class="contact-line" id="setContact">…</p>
         <p class="muted" id="setAddedBy" style="margin-bottom:0">…</p>
       </div>
+<!-- Coordinator: place this card inside <section id="tab-settings">, after the first account card. -->
+<div class="card" id="fin_myFeeCard">
+  <h2 class="sec" style="margin-top:0">My <span class="serif-i">fee status</span></h2>
+  <div id="fin_myFeeBody"><p class="empty" style="padding:4px">Checking your fee…</p></div>
+</div>
       <div class="card">
         <h2 class="sec" style="margin-top:0">My <span class="serif-i">mobile number</span></h2>
         <p class="muted" style="margin-top:-6px">Your current number: <b id="myMobileNow">—</b>. Changing it does <b>not</b> change your sign-in password.</p>
@@ -556,6 +1509,109 @@
           <div class="msg" id="passMsg" role="alert"></div>
         </form>
       </div>
+<div class="card" id="pp_completeCard">
+  <h2 class="sec" style="margin-top:0">Profile <span class="serif-i">completion</span></h2>
+  <p class="muted" style="margin-top:-6px">A complete profile helps the club find you for shows, fittings and costumes.</p>
+  <div class="pp-meter"><div class="pp-meter-fill" id="pp_completeBar" style="width:0%"></div></div>
+  <p class="muted" id="pp_completeText" style="margin:8px 0 0">Checking your profile…</p>
+  <div id="pp_completeList" style="margin-top:10px"></div>
+</div>
+<div class="card" id="pp_myMeasCard">
+  <h2 class="sec" style="margin-top:0">My <span class="serif-i">measurements</span></h2>
+  <p class="muted" style="margin-top:-6px">Your measurements are only visible to you, the Main Admin and the Head of Design. They help with costume fittings.</p>
+  <div class="grid2">
+    <div>
+      <label for="pp_measHeight">Height (cm)</label>
+      <input id="pp_measHeight" type="number" min="100" max="250" step="0.1" placeholder="e.g. 172" />
+    </div>
+    <div>
+      <label for="pp_measChest">Chest (cm)</label>
+      <input id="pp_measChest" type="number" min="40" max="200" step="0.1" placeholder="e.g. 88" />
+    </div>
+    <div>
+      <label for="pp_measWaist">Waist (cm)</label>
+      <input id="pp_measWaist" type="number" min="40" max="200" step="0.1" placeholder="e.g. 72" />
+    </div>
+    <div>
+      <label for="pp_measHip">Hip (cm)</label>
+      <input id="pp_measHip" type="number" min="40" max="200" step="0.1" placeholder="e.g. 92" />
+    </div>
+    <div>
+      <label for="pp_measShoe">Shoe size</label>
+      <input id="pp_measShoe" type="text" placeholder="e.g. UK 8" />
+    </div>
+  </div>
+  <button class="btn small" type="button" id="pp_measSaveBtn">Save my measurements</button>
+  <div class="msg" id="pp_measMsg" role="alert"></div>
+</div>
+<div class="card" id="pp_myCostumeCard">
+  <h2 class="sec" style="margin-top:0">My <span class="serif-i">costume</span></h2>
+  <p class="muted" style="margin-top:-6px">The costume or prop currently assigned to you. Return it to the Main Admin when you are done with it.</p>
+  <div id="pp_myCostumeList"><p class="empty">Loading your costume…</p></div>
+</div>
+<div class="card" id="pp_myEmergencyCard">
+  <h2 class="sec" style="margin-top:0">My <span class="serif-i">emergency contact</span></h2>
+  <p class="muted" style="margin-top:-6px">Someone the club can call in an emergency. Only you, the Main Admin, the President and the Vice Presidents can see this.</p>
+  <label for="pp_emName">Contact name</label>
+  <input id="pp_emName" type="text" placeholder="e.g. Priya Sharma (mother)" />
+  <label for="pp_emPhone">Contact phone</label>
+  <input id="pp_emPhone" type="tel" placeholder="Mobile number" />
+  <label for="pp_emRelation">Relationship</label>
+  <input id="pp_emRelation" type="text" placeholder="e.g. Mother" />
+  <button class="btn small" type="button" id="pp_emSaveBtn">Save emergency contact</button>
+  <div class="msg" id="pp_emMsg" role="alert"></div>
+</div>
+<div class="card" id="pp_myShowsCard">
+  <h2 class="sec" style="margin-top:0">My <span class="serif-i">show history</span></h2>
+  <p class="muted" style="margin-top:-6px">The shows you have walked in. The Main Admin adds entries; they also show on your profile.</p>
+  <div id="pp_myShowsList"><p class="empty">Loading your shows…</p></div>
+</div>
+<div class="card" id="pp_myRoleReqCard">
+  <h2 class="sec" style="margin-top:0">Request a <span class="serif-i">role change</span></h2>
+  <p class="muted" style="margin-top:-6px">Ask the Main Admin for a different role, for example Core Member. Your current role: <b id="pp_myRoleNow">—</b>.</p>
+  <label for="pp_myRoleReqRole">Role you would like</label>
+  <select id="pp_myRoleReqRole"></select>
+  <label for="pp_myRoleReqReason">Why should you get this role?</label>
+  <textarea id="pp_myRoleReqReason" placeholder="A short reason…" style="min-height:70px"></textarea>
+  <button class="btn small" type="button" id="pp_myRoleReqBtn">Send request</button>
+  <div class="msg" id="pp_myRoleReqMsg" role="alert"></div>
+  <div id="pp_myRoleReqList" style="margin-top:14px"></div>
+</div>
+<div class="card" id="pp_myDataCard">
+  <h2 class="sec" style="margin-top:0">Download <span class="serif-i">my data</span></h2>
+  <p class="muted" style="margin-top:-6px">Download your own profile and your own messages as one JSON file. Nobody else’s messages are included.</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <button class="btn small" type="button" id="pp_myDataBtn">Download my data (JSON)</button>
+    <button class="btn ghost small" type="button" id="pp_idCardBtn">Print my ID card</button>
+  </div>
+  <div class="msg" id="pp_myDataMsg" role="alert"></div>
+</div>
+<div class="card" id="pp_constViewCard">
+  <h2 class="sec" style="margin-top:0">Club <span class="serif-i">constitution</span></h2>
+  <p class="muted" style="margin-top:-6px">The rules of the REVA Fashion Club, set by the Main Admin.</p>
+  <div id="pp_constView"><p class="empty">Loading constitution…</p></div>
+</div>
+<!-- Paste inside <section id="tab-settings">, after the Change password card. -->
+<div class="card">
+  <h2 class="sec" style="margin-top:0">Text <span class="serif-i">size</span></h2>
+  <p class="muted" style="margin-top:-6px">Saved on this device.</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn ghost small" type="button" id="sh_fontNormal" aria-pressed="true">Normal text</button>
+    <button class="btn ghost small" type="button" id="sh_fontLarge" aria-pressed="false">Large text</button>
+  </div>
+</div>
+<div class="card">
+  <h2 class="sec" style="margin-top:0">Reduce <span class="serif-i">motion</span></h2>
+  <p class="muted" style="margin-top:-6px">Turns off animations and transitions across the portal. Follows your device setting until you change it here.</p>
+  <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-family:inherit;font-size:14.5px;font-weight:400;color:var(--ink-80)"><input type="checkbox" id="sh_motionReduce" style="width:auto;margin:0" /> Reduce motion</label>
+</div>
+<div class="card">
+  <h2 class="sec" style="margin-top:0">Share the <span class="serif-i">Join link</span></h2>
+  <p class="muted" style="margin-top:-6px">Copies the public Join form link so you can share it on WhatsApp or Instagram.</p>
+  <button class="btn small sh-copy-join" type="button">Copy Join link</button>
+</div>
+
+<!-- ================= WHAT'S NEW MODAL ================= -->
     </section>
   </main>
 </div>
@@ -567,6 +1623,27 @@
   </div>
 </div>
 
+<!-- Paste just before </body> (after #profileModal). Shown once per version
+     by shell.js when localStorage 'rfc-seen-version' differs from '16.0'. -->
+<div class="modal-overlay" id="sh_whatsNew" hidden>
+  <div class="modal" role="dialog" aria-label="What's new">
+    <h2 class="sec" style="margin-top:0">What&rsquo;s <span class="serif-i">new</span></h2>
+    <p class="muted" style="margin-top:-6px">Portal update 16.0 — here is what changed:</p>
+    <ul style="line-height:1.8;margin:0 0 16px;padding-left:20px">
+      <li><b>Events &amp; calendar</b> — create events, RSVP, and see everything in one shared club calendar.</li>
+      <li><b>Fees &amp; budget</b> — membership dues, pending list, and an income-vs-expenses budget tracker.</li>
+      <li><b>Polls &amp; voting</b> — vote on show themes, costumes and songs.</li>
+      <li><b>Tasks</b> — officials can assign tasks with deadlines; see yours under My tasks.</li>
+      <li><b>Club gallery</b> — event and rehearsal photos, uploaded by officials.</li>
+      <li><b>Notification bell</b> — alerts for announcements, tasks, leave decisions and events.</li>
+      <li><b>Theme toggle</b> — switch the portal between dark and light from the header; dark stays the default.</li>
+      <li><b>Global search</b> — one box in the header to find members, announcements, events and files.</li>
+      <li><b>Font size &amp; reduce motion</b> — new options in Settings.</li>
+    </ul>
+    <button class="btn" type="button" id="sh_whatsNewBtn">Got it</button>
+  </div>
+</div>
 <script src="./portal.js"></script>
+<script src="./features91.js"></script>
 </body>
 </html>

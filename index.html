@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,500;1,600&family=Cormorant+Garamond:ital,wght@1,500;1,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script>try{var _t=localStorage.getItem("rfc-theme");document.documentElement.setAttribute("data-theme",(_t==="light"||_t==="dark")?_t:"dark");}catch(e){document.documentElement.setAttribute("data-theme","dark");}</script>
 <style>
   button,[role="button"],select,summary,input:not([type="checkbox"],[type="radio"]),a.btn{min-height:2.25rem}
   :root{
@@ -35,6 +36,32 @@
       --shadow:0 30px 60px -28px rgba(0,0,0,.85); --glass:rgba(26,25,22,.66);
     }
   }
+  /* Light / dark theme toggle (Step 16 #23): an explicit choice always
+     wins over the system preference above. Dark stays the default. */
+  html[data-theme="dark"]{
+    --bg:#100f0d; --bg-2:#171512; --surface:#1a1916; --surface-2:#201e1a;
+    --ink:#f2efe7; --ink-80:rgba(242,239,231,.82); --ink-62:rgba(242,239,231,.64); --ink-45:rgba(242,239,231,.46); --ink-30:rgba(242,239,231,.30);
+    --line:rgba(242,239,231,.16); --line-soft:rgba(242,239,231,.09);
+    --nav-bg:rgba(16,15,13,.82);
+    --shadow:0 30px 60px -28px rgba(0,0,0,.85); --glass:rgba(26,25,22,.66);
+  }
+  html[data-theme="light"]{
+    --bg:#f3f1ed; --bg-2:#eae7e0; --surface:#ffffff; --surface-2:#faf8f4;
+    --ink:#12110f; --ink-80:rgba(18,17,15,.80); --ink-62:rgba(18,17,15,.62); --ink-45:rgba(18,17,15,.45); --ink-30:rgba(18,17,15,.30);
+    --line:rgba(18,17,15,.14); --line-soft:rgba(18,17,15,.08);
+    --nav-bg:rgba(243,241,237,.82);
+    --shadow:0 30px 60px -28px rgba(30,20,8,.35); --glass:rgba(255,255,255,.66);
+  }
+  .nav-theme{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:99px;padding:9px 13px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+  .nav-theme:hover{border-color:var(--orange);color:var(--orange-deep)}
+  /* Trophy wall (Step 16 #47) — the club's wins, kept live from the portal. */
+  .trophy-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:28px}
+  .trophy-card{background:var(--surface);border:1px solid var(--line);border-radius:20px;overflow:hidden}
+  .trophy-card img{width:100%;height:180px;object-fit:cover}
+  .trophy-body{padding:18px 20px}
+  .trophy-body h3{margin:0 0 4px;font-size:18px;font-weight:800;letter-spacing:-.01em}
+  .trophy-body .trophy-meta{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-45)}
+  .trophy-body p{margin:10px 0 0;font-size:14.5px;color:var(--ink-80)}
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
   html,body{overflow-x:clip}
@@ -610,6 +637,7 @@
       <a href="#team">Core Team</a>
       <a href="portal/login.html" target="_top" class="nav-login" aria-label="Login to the REVA Fashion Club Portal — for members, officials and admin"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><rect x="4" y="10.5" width="16" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>Login</a>
       <a href="#join" class="nav-cta">Join the Club</a>
+      <button type="button" class="nav-theme" id="themeToggle" aria-label="Switch between light and dark theme">☀️ Light</button>
     </nav>
   </div>
 </header>
@@ -827,6 +855,16 @@
         </div>
       </article>
     </div>
+  </div>
+</section>
+
+<!-- ================= TROPHY WALL ================= -->
+<section id="trophy-wall">
+  <div class="container">
+    <p class="kicker rv"><i></i>The trophy wall</p>
+    <h2 class="title rv d1">Wins we <em>carry</em></h2>
+    <p class="lede rv d2">Every podium, every title — the club's record, kept live from the portal.</p>
+    <div class="trophy-grid" id="trophyGrid"><p class="muted" id="trophyEmpty">Loading the trophy wall…</p></div>
   </div>
 </section>
 
@@ -1434,6 +1472,46 @@
     window.__rfcDb = window.supabase.createClient(RFC_DB_URL, RFC_DB_KEY);
     return window.__rfcDb;
   }
+
+  /* Theme toggle (#23): same key as the portal. Dark is the default;
+     the early script in <head> already applied the saved choice. */
+  (function(){
+    var btn = document.getElementById("themeToggle");
+    function label(){
+      var t = document.documentElement.getAttribute("data-theme") || "dark";
+      if (btn) btn.textContent = t === "dark" ? "☀️ Light" : "🌙 Dark";
+    }
+    label();
+    if (btn) btn.addEventListener("click", function(){
+      var cur = document.documentElement.getAttribute("data-theme") || "dark";
+      var next = cur === "dark" ? "light" : "dark";
+      try { localStorage.setItem("rfc-theme", next); } catch (e) {}
+      document.documentElement.setAttribute("data-theme", next);
+      label();
+    });
+  })();
+
+  /* Trophy wall (#47): reads the portal's trophy_wall table (public
+     read). Fails gracefully — if the table is not there yet, the
+     section simply stays empty. */
+  (async function(){
+    var grid = document.getElementById("trophyGrid");
+    if (!grid) return;
+    function twEsc(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+    var db = rfcDb();
+    if (!db) { grid.innerHTML = ""; return; }
+    try {
+      var res = await db.from("trophy_wall").select("*").order("year", { ascending: false }).order("created_at", { ascending: false }).limit(12);
+      if (res.error || !res.data || !res.data.length) { grid.innerHTML = ""; return; }
+      grid.innerHTML = res.data.map(function (t) {
+        var img = t.photo_url ? '<img src="' + twEsc(t.photo_url) + '" alt="" loading="lazy" />' : "";
+        var meta = [t.event_name, t.year].filter(function (x) { return x; }).join(" · ");
+        return '<article class="trophy-card rv">' + img + '<div class="trophy-body"><h3>' + twEsc(t.title) + "</h3>" +
+          (meta ? '<div class="trophy-meta">' + twEsc(meta) + "</div>" : "") +
+          (t.note ? "<p>" + twEsc(t.note) + "</p>" : "") + "</div></article>";
+      }).join("");
+    } catch (e) { grid.innerHTML = ""; }
+  })();
   var form = document.getElementById("appForm");
   var result = document.getElementById("appResult");
   // If the Main Admin closed applications, the Join form stops here.

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="color-scheme" content="dark" />
+<meta name="color-scheme" content="light dark" />
 <title>Login — REVA Fashion Club Portal</title>
 <meta name="description" content="Sign in to the REVA Fashion Club Portal — members, officials and admin." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -20,6 +20,20 @@
     --line:rgba(244,239,228,.14); --line-soft:rgba(244,239,228,.09);
     --ease:cubic-bezier(.22,1,.36,1);
   }
+  /* Light theme (Step 16 #23): same orange accent, light surfaces.
+     Dark stays the default — light only applies when the visitor picks
+     it (saved on the device) or the portal picks it. */
+  html[data-theme="light"]{
+    --bg:#f3f1ed; --panel:#ffffff; --panel-2:#faf8f4; --field:#ffffff;
+    --cream:#12110f;
+    --cream-80:rgba(18,17,15,.80); --cream-62:rgba(18,17,15,.62); --cream-45:rgba(18,17,15,.45);
+    --line:rgba(18,17,15,.14); --line-soft:rgba(18,17,15,.08);
+  }
+  html[data-theme="light"] .watermark span{-webkit-text-stroke:1px rgba(18,17,15,.09)}
+  html[data-theme="light"] .msg.err{color:#8f1d12}
+  html[data-theme="light"] .msg.ok{color:#145c2e}
+  html[data-theme="light"] .msg.warn{color:#7a4a00}
+  html[data-theme="light"] .grain{opacity:.03}
   *{box-sizing:border-box}
   html,body{overflow-x:clip}
   body{margin:0;background:var(--bg);color:var(--cream);font-family:"Archivo",system-ui,sans-serif;font-size:16.5px;line-height:1.65;-webkit-font-smoothing:antialiased}
@@ -42,6 +56,7 @@
   .topbar .top-right{display:flex;align-items:center;gap:16px}
   .home-link{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:8px 14px;color:var(--cream);text-decoration:none;letter-spacing:.22em}
   .home-link:hover{border-color:var(--orange);color:var(--orange)}
+  button.home-link{background:transparent;font:inherit;cursor:pointer}
 
   /* two-column stage */
   .stage{flex:1;display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(32px,5vw,72px);align-items:center;padding:clamp(28px,4vh,48px) 0}
@@ -116,7 +131,7 @@
 <div class="page">
   <header class="topbar">
     <span>REVA University</span>
-    <span class="top-right"><a class="home-link" href="../">&larr; Home</a><span class="members-only">Members Only</span></span>
+    <span class="top-right"><button type="button" class="home-link" id="themeToggle" aria-label="Switch between light and dark theme">☀️ Light</button><a class="home-link" href="../">&larr; Home</a><span class="members-only">Members Only</span></span>
   </header>
 
   <main class="stage">
@@ -151,6 +166,7 @@
           </button>
         </div>
         <p class="field-hint">First time signing in? Your temporary password is your mobile number &mdash; change it after your first sign-in, from Settings inside the portal.</p>
+        <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-family:inherit;font-size:14.5px;font-weight:400;color:var(--cream-62);margin:0 0 16px"><input type="checkbox" id="rememberMe" checked style="width:auto;margin:0;min-height:0" /> Stay signed in on this device</label>
         <button class="btn" type="submit" id="signInBtn">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><rect x="4" y="10.5" width="16" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>
           <span id="signInBtnText">Sign in as Member</span>
@@ -183,7 +199,48 @@
 <script>
 (function () {
   var cfg = window.RFC_CONFIG;
-  var client = supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_PUBLISHABLE_KEY);
+
+  // Theme (#23): dark stays the default; a saved choice wins.
+  // Same localStorage key ('rfc-theme') as the portal and the main site.
+  function applyTheme() {
+    var saved = null; try { saved = localStorage.getItem("rfc-theme"); } catch (e) {}
+    var theme = (saved === "light" || saved === "dark") ? saved : "dark";
+    document.documentElement.setAttribute("data-theme", theme);
+    var t = document.getElementById("themeToggle");
+    if (t) t.textContent = theme === "dark" ? "☀️ Light" : "🌙 Dark";
+  }
+  applyTheme();
+  document.getElementById("themeToggle").addEventListener("click", function () {
+    var cur = document.documentElement.getAttribute("data-theme") || "dark";
+    var next = cur === "dark" ? "light" : "dark";
+    try { localStorage.setItem("rfc-theme", next); } catch (e) {}
+    applyTheme();
+  });
+
+  // Stay signed in (#91): the session lives in localStorage (remembered)
+  // or sessionStorage (this tab only). The portal uses the same adapter,
+  // so either choice works on both pages. Exactly one copy is kept.
+  function rfcAuthStorage() {
+    return {
+      getItem: function (k) { try { return localStorage.getItem(k) || sessionStorage.getItem(k); } catch (e) { return null; } },
+      setItem: function (k, v) {
+        try {
+          if (localStorage.getItem("rfc-remember") === "0") { localStorage.removeItem(k); sessionStorage.setItem(k, v); }
+          else { sessionStorage.removeItem(k); localStorage.setItem(k, v); }
+        } catch (e) {}
+      },
+      removeItem: function (k) { try { localStorage.removeItem(k); sessionStorage.removeItem(k); } catch (e) {} }
+    };
+  }
+  var client = supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_PUBLISHABLE_KEY, { auth: { storage: rfcAuthStorage() } });
+
+  // "Stay signed in" checkbox: on by default; the choice is read when
+  // the session is saved at sign-in time.
+  var rememberBox = document.getElementById("rememberMe");
+  try { rememberBox.checked = localStorage.getItem("rfc-remember") !== "0"; } catch (e) {}
+  rememberBox.addEventListener("change", function () {
+    try { localStorage.setItem("rfc-remember", rememberBox.checked ? "1" : "0"); } catch (e) {}
+  });
   var DOOR_LABELS = { member: "Member", official: "Official", admin: "Admin" };
   var DOOR_SUBS = {
     member: "Sign in with the login ID the admin gave you.",
