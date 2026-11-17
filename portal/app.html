@@ -30,6 +30,10 @@
     }
   }
   *{box-sizing:border-box}
+  /* The hidden attribute must always win — several classes below set
+     their own display (e.g. .btn is inline-flex), which would otherwise
+     override it and show elements that are meant to be hidden. */
+  [hidden]{display:none !important}
   body{margin:0;background:var(--bg);color:var(--ink);font-family:"Archivo",system-ui,sans-serif;font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
   a{color:inherit}
   ::selection{background:var(--orange);color:#fff}
@@ -112,6 +116,11 @@
   .row-item{display:flex;gap:14px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin-bottom:10px}
   .row-item.unread{border-color:var(--orange);box-shadow:0 0 0 3px rgba(242,101,34,.12)}
   .avatar{flex:none;width:44px;height:44px;border-radius:50%;background:var(--dark);color:var(--amber);display:grid;place-items:center;font-weight:900;font-size:17px}
+  .avatar.has-photo{padding:0;overflow:hidden}
+  .avatar img{width:100%;height:100%;object-fit:cover;display:block}
+  table.perms{border-collapse:collapse;font-size:13.5px}
+  table.perms th,table.perms td{border:1px solid var(--line);padding:7px 10px;text-align:center;white-space:nowrap}
+  table.perms th:first-child,table.perms td:first-child{text-align:left}
   .row-item .body{flex:1;min-width:0}
   .row-item .body b{font-size:15.5px}
   .row-item .body .meta{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.1em;color:var(--ink-45);margin-top:2px}
@@ -161,6 +170,7 @@
     <button role="tab" data-tab="create" aria-selected="false" id="tabCreate">Create Account</button>
     <button role="tab" data-tab="admin" aria-selected="false" id="tabAdmin">Admin</button>
     <button role="tab" data-tab="audit" aria-selected="false" id="tabAudit">Audit Log</button>
+    <button role="tab" data-tab="roles" aria-selected="false" id="tabRoles">Club Roles</button>
     <button role="tab" data-tab="settings" aria-selected="false">Settings</button>
   </nav>
 
@@ -204,7 +214,7 @@
     <!-- ================= MEMBERS ================= -->
     <section class="tab" id="tab-members" role="tabpanel" hidden>
       <h1 class="page">Club <em>members</em></h1>
-      <p class="lede">Everyone in the club. Contact details (email and mobile) are only shown to the President, Vice Presidents and the Admins (Main Admin and Second Admins) — and to you, on your own record. The Main Admin, Second Admin, President and Vice Presidents can also update a member's mobile number from here — use the “Update mobile” button on their row.</p>
+      <p class="lede">Everyone in the club. Contact details (email and mobile) are only shown to roles with that permission — and to you, on your own record. Login IDs are private: only the Main Admin can see other people's login IDs. Roles with the permission can also update a member's mobile number from here — use the “Update mobile” button on their row.</p>
       <div class="card" id="memberSearchCard" hidden>
         <div class="toolbar">
           <input id="memberSearch" type="search" placeholder="Search by name or login ID…" autocomplete="off" />
@@ -215,7 +225,10 @@
             <option value="signin">Last sign-in</option>
           </select>
         </div>
-        <p class="muted" style="margin:0">Main Admin only — search, filter and sort the member list.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <button class="btn ghost small" type="button" id="memberFilteredCsvBtn" hidden>Download these (CSV)</button>
+          <p class="muted" style="margin:0">Search, filter and sort the member list. Only the Main Admin can search by login ID or download a CSV of the results.</p>
+        </div>
       </div>
       <div id="memberList"><p class="empty">Loading members…</p></div>
     </section>
@@ -274,7 +287,7 @@
 
       <div class="card" id="broadcastCard" hidden>
         <h2 class="sec" style="margin-top:0">Broadcast <span class="serif-i">history</span></h2>
-        <p class="muted" style="margin-top:-6px">Every message sent to “All members”, and how many people each one reached. Main Admin only.</p>
+        <p class="muted" style="margin-top:-6px">Every message sent to “All members”, and how many people each one reached. Main Admin, President and Vice Presidents.</p>
         <div id="broadcastList"><p class="empty">Loading broadcasts…</p></div>
       </div>
     </section>
@@ -296,30 +309,46 @@
           <label for="annBody">Announcement</label>
           <textarea id="annBody" placeholder="Write the announcement…" required></textarea>
           <div id="annTemplatesBox" hidden>
-            <label for="annTemplateSel">Template</label>
-            <select id="annTemplateSel"><option value="">Load a template…</option></select>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
-              <button class="btn ghost small" type="button" id="annSaveTemplateBtn">Save as template</button>
+            <div id="annTemplatesPart" hidden>
+              <label for="annTemplateSel">Template</label>
+              <select id="annTemplateSel"><option value="">Load a template…</option></select>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+                <button class="btn ghost small" type="button" id="annSaveTemplateBtn">Save as template</button>
+              </div>
             </div>
-            <label for="annDraftSel">Draft</label>
-            <select id="annDraftSel"><option value="">Load a draft…</option></select>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
-              <button class="btn ghost small" type="button" id="annSaveDraftBtn">Save draft</button>
-              <button class="btn ghost small" type="button" id="annDeleteDraftBtn">Delete draft</button>
+            <div id="annDraftsPart" hidden>
+              <label for="annDraftSel">Draft</label>
+              <select id="annDraftSel"><option value="">Load a draft…</option></select>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+                <button class="btn ghost small" type="button" id="annSaveDraftBtn">Save draft</button>
+                <button class="btn ghost small" type="button" id="annDeleteDraftBtn">Delete draft</button>
+              </div>
             </div>
+          </div>
+          <div id="annScheduleBox" hidden>
+            <label for="annSchedWhen">Schedule for later (Main Admin only)</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px">
+              <input id="annSchedWhen" type="datetime-local" style="flex:1;min-width:200px;margin:0" />
+              <button class="btn ghost small" type="button" id="annSchedBtn">Schedule announcement</button>
+            </div>
+            <p class="field-hint">It posts the next time someone who can post announcements opens the portal after the scheduled time — not minute-exact.</p>
+            <div id="schedList"><p class="empty">Nothing scheduled.</p></div>
           </div>
           <button class="btn" type="submit" id="annPostBtn">Post announcement</button>
           <div class="msg" id="annMsg" role="alert"></div>
         </form>
       </div>
 
+      <div class="toolbar" style="margin-bottom:14px">
+        <input id="annSearch" type="search" placeholder="Search announcements…" autocomplete="off" />
+      </div>
       <div id="announceList"><p class="empty">Loading announcements…</p></div>
     </section>
 
     <!-- ================= INTERESTED APPLICANTS ================= -->
     <section class="tab" id="tab-applicants" role="tabpanel" hidden>
       <h1 class="page">Interested <em>applicants</em></h1>
-      <p class="lede">Everyone who filled in the Join form on the public website. Only the Main Admin, President and Vice Presidents can see this list. Mark each one New, Contacted, Shortlisted or Reviewed — the Main Admin can also turn an applicant into a member account with one tap.</p>
+      <p class="lede">Everyone who filled in the Join form on the public website. Only the Main Admin, President and Vice Presidents can see this list. Mark each one New, Contacted, Shortlisted or Reviewed — the Main Admin, President and Vice Presidents can also turn an applicant into a member account with one tap.</p>
       <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
         <button class="btn ghost small" type="button" id="appCsvBtn" hidden>Download applicants (CSV)</button>
       </div>
@@ -436,6 +465,57 @@
       <div id="auditList"><p class="empty">Loading audit log…</p></div>
     </section>
 
+    <!-- ================= CLUB ROLES ================= -->
+    <section class="tab" id="tab-roles" role="tabpanel" hidden>
+      <h1 class="page">Club <em>roles</em></h1>
+      <p class="lede">Every role in the club, what door it signs in through, and what it is allowed to do. Main Admin only. Built-in roles cannot be edited or deleted — their permissions are the club's settled rules. A custom role only gets the 8 switches below; suspend, lockdown, audit log and backup stay Main Admin only.</p>
+
+      <div class="card">
+        <h2 class="sec" style="margin-top:0">Role <span class="serif-i">permissions</span></h2>
+        <div id="permsChart"><p class="empty">Loading roles…</p></div>
+      </div>
+
+      <h2 class="sec">All <span class="serif-i">roles</span></h2>
+      <div id="rolesList"><p class="empty">Loading roles…</p></div>
+
+      <div class="card" id="roleForm" style="margin-top:16px">
+        <h2 class="sec" style="margin-top:0">Create a <span class="serif-i">new role</span></h2>
+        <div class="grid2">
+          <div>
+            <label for="roleCode">Role code</label>
+            <input id="roleCode" type="text" autocapitalize="off" spellcheck="false" placeholder="e.g. social_media_lead" />
+            <p class="field-hint">Small letters, numbers and _ only. This is how the role is stored — it cannot be changed later.</p>
+          </div>
+          <div>
+            <label for="roleLabel">Display name</label>
+            <input id="roleLabel" type="text" placeholder="e.g. Social Media Lead" />
+          </div>
+        </div>
+        <label for="roleDoor">Sign-in door</label>
+        <select id="roleDoor">
+          <option value="member">Member door</option>
+          <option value="official" selected>Official door</option>
+          <option value="admin">Admin door</option>
+        </select>
+        <label style="margin-top:14px">Permissions</label>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:4px 18px;margin-bottom:14px">
+          <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-family:inherit;font-size:14.5px;font-weight:400;color:var(--ink-80)"><input type="checkbox" id="perm-can_view_contacts" style="width:auto;margin:0" /> See members' contact details</label>
+          <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-family:inherit;font-size:14.5px;font-weight:400;color:var(--ink-80)"><input type="checkbox" id="perm-can_create_members" style="width:auto;margin:0" /> Create Member accounts</label>
+          <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-family:inherit;font-size:14.5px;font-weight:400;color:var(--ink-80)"><input type="checkbox" id="perm-can_create_officials" style="width:auto;margin:0" /> Create Official accounts</label>
+          <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-family:inherit;font-size:14.5px;font-weight:400;color:var(--ink-80)"><input type="checkbox" id="perm-can_create_admins" style="width:auto;margin:0" /> Create Admin accounts</label>
+          <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-family:inherit;font-size:14.5px;font-weight:400;color:var(--ink-80)"><input type="checkbox" id="perm-can_post_announcements" style="width:auto;margin:0" /> Post announcements</label>
+          <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-family:inherit;font-size:14.5px;font-weight:400;color:var(--ink-80)"><input type="checkbox" id="perm-can_view_applicants" style="width:auto;margin:0" /> See Interested Applicants</label>
+          <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-family:inherit;font-size:14.5px;font-weight:400;color:var(--ink-80)"><input type="checkbox" id="perm-can_broadcast" style="width:auto;margin:0" /> Message all members</label>
+          <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-family:inherit;font-size:14.5px;font-weight:400;color:var(--ink-80)"><input type="checkbox" id="perm-can_update_mobile" style="width:auto;margin:0" /> Update members' mobile numbers</label>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn small" type="button" id="roleSaveBtn">Create role</button>
+          <button class="btn ghost small" type="button" id="roleCancelBtn" hidden>Cancel</button>
+        </div>
+        <div class="msg" id="roleMsg" role="alert"></div>
+      </div>
+    </section>
+
     <!-- ================= SETTINGS ================= -->
     <section class="tab" id="tab-settings" role="tabpanel" hidden>
       <h1 class="page">Your <em>settings</em></h1>
@@ -444,6 +524,25 @@
         <p style="margin:0 0 4px"><b id="setName">…</b> <span class="chip" id="setRole">…</span></p>
         <p class="contact-line" id="setContact">…</p>
         <p class="muted" id="setAddedBy" style="margin-bottom:0">…</p>
+      </div>
+      <div class="card">
+        <h2 class="sec" style="margin-top:0">My <span class="serif-i">mobile number</span></h2>
+        <p class="muted" style="margin-top:-6px">Your current number: <b id="myMobileNow">—</b>. Changing it does <b>not</b> change your sign-in password.</p>
+        <label for="myMobileInput">New mobile number</label>
+        <input id="myMobileInput" type="tel" autocomplete="off" placeholder="10-digit mobile number" />
+        <button class="btn small" type="button" id="myMobileSaveBtn">Update my mobile</button>
+        <div class="msg" id="myMobileMsg" role="alert"></div>
+      </div>
+      <div class="card">
+        <h2 class="sec" style="margin-top:0">My <span class="serif-i">photo</span></h2>
+        <p class="muted" style="margin-top:-6px">Shown next to your name across the portal. Max 2 MB, image files only. Photos are stored as public links.</p>
+        <div id="myPhotoPreview" style="margin-bottom:12px"></div>
+        <input id="myPhotoFile" type="file" accept="image/*" style="margin-bottom:10px" />
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn small" type="button" id="myPhotoUploadBtn">Upload photo</button>
+          <button class="btn ghost small" type="button" id="myPhotoRemoveBtn">Remove photo</button>
+        </div>
+        <div class="msg" id="myPhotoMsg" role="alert"></div>
       </div>
       <div class="card">
         <h2 class="sec" style="margin-top:0">Change <span class="serif-i">password</span></h2>

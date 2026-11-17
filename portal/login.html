@@ -347,6 +347,10 @@
         showMsg("Logins are paused by the Main Admin. Only the Main Admin can sign in right now.");
         return;
       }
+      // Record this sign-in for the Main Admin's sign-in history
+      // (best effort — if the table does not exist yet, nothing breaks).
+      client.from("login_events").insert({ user_id: signIn.data.user.id })
+        .then(function () {}, function () {});
       location.href = "./app.html";
     } catch (err) {
       showMsg("Something went wrong: " + (err.message || err));

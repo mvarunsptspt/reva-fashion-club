@@ -35,6 +35,38 @@
   // can create Member / Core Member accounts, can post announcements).
   var OFFICE_ROLES = ["president", "vice_president", "secretary", "treasurer", "creative_director", "head_of_design", "runway_lead", "media_lead", "events_lead"];
   var ALL_ROLES = ["admin", "second_admin", "president", "vice_president", "secretary", "treasurer", "creative_director", "head_of_design", "runway_lead", "media_lead", "events_lead", "core_member", "member"];
+  // The 8 permission switches a club role can have. Built-in roles keep
+  // exactly the permissions they always had; custom roles get whichever
+  // switches the Main Admin turns on. (club_roles table in the database.)
+  var ROLE_PERMS = [
+    { key: "can_view_contacts", label: "See members' contact details", short: "Contacts" },
+    { key: "can_create_members", label: "Create Member accounts", short: "Create members" },
+    { key: "can_create_officials", label: "Create Official accounts", short: "Create officials" },
+    { key: "can_create_admins", label: "Create Admin accounts", short: "Create admins" },
+    { key: "can_post_announcements", label: "Post announcements", short: "Announce" },
+    { key: "can_view_applicants", label: "See Interested Applicants", short: "Applicants" },
+    { key: "can_broadcast", label: "Message all members", short: "Broadcast" },
+    { key: "can_update_mobile", label: "Update members' mobile numbers", short: "Update mobile" }
+  ];
+  // Fallback copy of the 13 built-in roles, used when the club_roles
+  // table cannot be loaded yet (before the Step 15 SQL has been run).
+  // Same doors and permissions as the database seed.
+  var BUILTIN_ROLES = [
+    { code: "admin", label: "Main Admin", door: "admin", can_view_contacts: true, can_create_members: true, can_create_officials: true, can_create_admins: true, can_post_announcements: true, can_view_applicants: true, can_broadcast: true, can_update_mobile: true, is_builtin: true },
+    { code: "second_admin", label: "Second Admin", door: "admin", can_view_contacts: true, can_create_members: true, can_create_officials: true, can_create_admins: true, can_post_announcements: true, can_view_applicants: false, can_broadcast: true, can_update_mobile: true, is_builtin: true },
+    { code: "president", label: "President", door: "official", can_view_contacts: true, can_create_members: true, can_create_officials: false, can_create_admins: false, can_post_announcements: true, can_view_applicants: true, can_broadcast: true, can_update_mobile: true, is_builtin: true },
+    { code: "vice_president", label: "Vice President", door: "official", can_view_contacts: true, can_create_members: true, can_create_officials: false, can_create_admins: false, can_post_announcements: true, can_view_applicants: true, can_broadcast: true, can_update_mobile: true, is_builtin: true },
+    { code: "secretary", label: "Secretary", door: "official", can_view_contacts: false, can_create_members: true, can_create_officials: false, can_create_admins: false, can_post_announcements: true, can_view_applicants: false, can_broadcast: false, can_update_mobile: false, is_builtin: true },
+    { code: "treasurer", label: "Treasurer", door: "official", can_view_contacts: false, can_create_members: true, can_create_officials: false, can_create_admins: false, can_post_announcements: true, can_view_applicants: false, can_broadcast: false, can_update_mobile: false, is_builtin: true },
+    { code: "creative_director", label: "Creative Director", door: "official", can_view_contacts: false, can_create_members: true, can_create_officials: false, can_create_admins: false, can_post_announcements: true, can_view_applicants: false, can_broadcast: false, can_update_mobile: false, is_builtin: true },
+    { code: "head_of_design", label: "Head of Design", door: "official", can_view_contacts: false, can_create_members: true, can_create_officials: false, can_create_admins: false, can_post_announcements: true, can_view_applicants: false, can_broadcast: false, can_update_mobile: false, is_builtin: true },
+    { code: "runway_lead", label: "Runway Lead", door: "official", can_view_contacts: false, can_create_members: true, can_create_officials: false, can_create_admins: false, can_post_announcements: true, can_view_applicants: false, can_broadcast: false, can_update_mobile: false, is_builtin: true },
+    { code: "media_lead", label: "Media & Photography Lead", door: "official", can_view_contacts: false, can_create_members: true, can_create_officials: false, can_create_admins: false, can_post_announcements: true, can_view_applicants: false, can_broadcast: false, can_update_mobile: false, is_builtin: true },
+    { code: "events_lead", label: "Events & Sponsorship Lead", door: "official", can_view_contacts: false, can_create_members: true, can_create_officials: false, can_create_admins: false, can_post_announcements: true, can_view_applicants: false, can_broadcast: false, can_update_mobile: false, is_builtin: true },
+    { code: "core_member", label: "Core Member", door: "member", can_view_contacts: false, can_create_members: false, can_create_officials: false, can_create_admins: false, can_post_announcements: false, can_view_applicants: false, can_broadcast: false, can_update_mobile: false, is_builtin: true },
+    { code: "member", label: "Member", door: "member", can_view_contacts: false, can_create_members: false, can_create_officials: false, can_create_admins: false, can_post_announcements: false, can_view_applicants: false, can_broadcast: false, can_update_mobile: false, is_builtin: true }
+  ];
+  var clubRoles = BUILTIN_ROLES.slice(); // rows from club_roles, else the fallback above
 
   var me = null;          // my profile row
   var directory = [];     // public member list (list_members)
@@ -51,10 +83,13 @@
   var draftsCache = [];   // saved announcement drafts, Main Admin only
   var readCounts = {};    // announcement id -> number of readers
   var readCountsLoaded = false;
-  var bulkSelected = [];  // admin-panel checkbox selection, Main Admin only
+  var bulkSelected = [];  // admin-panel checkbox selection, Main Admin + Second Admin
   var convertAppId = null;// application being converted into a member
   var appsOpen = true;    // whether the public Join form accepts applications
   var memberFilter = { q: "", role: "all", sort: "newest" };
+  var schedRows = [];     // scheduled announcements, Main Admin only
+  var editingRoleCode = null; // role code being edited in the Club Roles tab
+  var annSearchQ = "";    // announcement search text (everyone)
   // Application stages: New → Contacted → Shortlisted → Reviewed.
   var STAGE_LABELS = { new: "New", contacted: "Contacted", shortlisted: "Shortlisted", reviewed: "Reviewed" };
 
@@ -90,17 +125,72 @@
   // be removed or have its role changed.
   function isMainAdmin() { return me && me.role === "admin"; }
   function isAdmin() { return me && (me.role === "admin" || me.role === "second_admin"); }
+  function isSecondAdmin() { return me && me.role === "second_admin"; }
   function isPrivileged() { return me && (me.role === "admin" || me.role === "second_admin" || me.role === "president" || me.role === "vice_president"); }
-  // "Interested Applicants" is only for the Main Admin, President and
-  // Vice Presidents — NOT Second Admins, NOT other officials, NOT members.
-  function canViewApplicants() { return me && (me.role === "admin" || me.role === "president" || me.role === "vice_president"); }
-  function isOfficialOrAbove() { return me && (me.role !== "member" && me.role !== "core_member"); }
-  function canCreate() { return isAdmin() || (me && OFFICE_ROLES.indexOf(me.role) !== -1); }
-  function canPostAnnouncement() { return isOfficialOrAbove(); }
-  function doorForRole(role) {
-    if (role === "admin" || role === "second_admin") return "admin";
-    if (role === "member" || role === "core_member") return "member";
+  // Roles are read from the club_roles table (loaded at boot), so a
+  // custom role works the same way a built-in one does. The checks
+  // below ask the role's permission switches; the two code-based
+  // helpers above stay for the powers that never move to a custom role
+  // (Admin panel, audit log, suspend, lockdown, backup).
+  function roleRow(code) {
+    return clubRoles.filter(function (r) { return r.code === code; })[0] || null;
+  }
+  function hasPerm(perm) {
+    if (!me) return false;
+    var r = roleRow(me.role);
+    return !!(r && r[perm]);
+  }
+  function doorOf(code) {
+    var r = roleRow(code);
+    if (r) return r.door;
+    if (code === "admin" || code === "second_admin") return "admin";
+    if (code === "member" || code === "core_member") return "member";
     return "official";
+  }
+  // "Interested Applicants" is only for roles with the view-applicants
+  // permission — Main Admin, President and Vice Presidents. NOT Second
+  // Admins, NOT other officials, NOT members.
+  function canViewApplicants() { return hasPerm("can_view_applicants"); }
+  function isOfficialOrAbove() { return me && me.door !== "member"; }
+  function canCreate() {
+    return hasPerm("can_create_members") || hasPerm("can_create_officials") || hasPerm("can_create_admins");
+  }
+  function canPostAnnouncement() { return hasPerm("can_post_announcements"); }
+  function canViewContacts() { return hasPerm("can_view_contacts"); }
+  function canBroadcast() { return hasPerm("can_broadcast"); }
+  function canUpdateMobile() { return hasPerm("can_update_mobile"); }
+  // Broadcast history and read receipts: Main Admin, President and Vice
+  // Presidents (the roles that send or follow broadcasts) — not Second
+  // Admins, not other officials.
+  function canViewBroadcasts() { return me && (me.role === "admin" || me.role === "president" || me.role === "vice_president"); }
+  function canViewReadReceipts() { return me && (me.role === "admin" || me.role === "president" || me.role === "vice_president"); }
+  function doorForRole(role) { return doorOf(role); }
+  // Which roles may I assign when creating an account?
+  // Main Admin: any role. Second Admin: any role except Main Admin.
+  // Everyone else: only roles whose door their switches allow.
+  function creatableRoles() {
+    if (isMainAdmin()) return ALL_ROLES.slice();
+    if (isAdmin()) return ALL_ROLES.filter(function (r) { return r !== "admin"; });
+    return ALL_ROLES.filter(function (r) {
+      var d = doorOf(r);
+      return (d === "member" && hasPerm("can_create_members"))
+        || (d === "official" && hasPerm("can_create_officials"));
+    });
+  }
+  // A member's photo if they uploaded one, else their initials.
+  function avatarHtml(p) {
+    if (p && p.avatar_url) {
+      return '<div class="avatar has-photo" aria-hidden="true"><img src="' + esc(p.avatar_url) + '" alt="" /></div>';
+    }
+    return '<div class="avatar" aria-hidden="true">' + esc(initials(p ? p.name : "?")) + "</div>";
+  }
+  // Open the Messages tab with a DM addressed to one member.
+  function messageMember(id) {
+    document.querySelector('nav.tabs button[data-tab="messages"]').click();
+    var sel = $("dmTo");
+    if (sel) { sel.value = id; sel.dispatchEvent(new Event("change")); }
+    var body = $("dmBody");
+    if (body) body.focus();
   }
 
   /* Where magic-link emails should land: the portal shell (app.html),
@@ -153,6 +243,10 @@
       location.href = "./login.html?locked=1";
       return;
     }
+    // Roles first: every permission check below reads the loaded table.
+    // If the table does not exist yet (Step 15 SQL not run), the
+    // built-in fallback keeps the portal working exactly as before.
+    await loadRoles();
     renderIdentity();
     setupTabs();
     setupCreateForm();
@@ -163,20 +257,53 @@
     setupMemberSearch();
     setupInboxTools();
     setupProfileModal();
+    // Post any scheduled announcements whose time has come (only if I
+    // may post announcements; the database checks again server-side).
+    if (canPostAnnouncement()) {
+      client.rpc("post_due_announcements").then(function () {}, function () {});
+    }
     await refreshDirectory();
     await refreshDashboard();
     await refreshInbox();
     await refreshAnnouncements();
     if (canViewApplicants()) await refreshApplicants();
     if (isAdmin()) await refreshAdminList();
+    if (canViewBroadcasts()) await refreshBroadcastHistory();
     if (isMainAdmin()) {
       await refreshAuditLog();
       await refreshLockdown();
-      await refreshBroadcastHistory();
       await refreshNeedsAttention();
       await refreshActivityFeed();
       await refreshApplicationsOpen();
+      await refreshScheduled();
+      setupRoles();
+      await refreshRoles();
     }
+  }
+
+  // Load the club_roles table into clubRoles (labels, doors, permission
+  // switches). On any error — table not created yet, network hiccup —
+  // keep the built-in fallback so nothing else breaks.
+  async function loadRoles() {
+    var res = await client.from("club_roles").select("*").order("created_at", { ascending: true });
+    if (res.error || !res.data || !res.data.length) return;
+    clubRoles = res.data;
+    // Keep the 13 built-ins in their usual order, custom roles after.
+    var order = {};
+    BUILTIN_ROLES.forEach(function (r, i) { order[r.code] = i; });
+    clubRoles.sort(function (a, b) {
+      var oa = (order[a.code] == null ? 100 : order[a.code]);
+      var ob = (order[b.code] == null ? 100 : order[b.code]);
+      if (oa !== ob) return oa - ob;
+      return new Date(a.created_at) - new Date(b.created_at);
+    });
+    ROLE_LABELS = {};
+    ALL_ROLES = [];
+    clubRoles.forEach(function (r) {
+      ROLE_LABELS[r.code] = r.label;
+      ALL_ROLES.push(r.code);
+    });
+    OFFICE_ROLES = clubRoles.filter(function (r) { return r.door === "official"; }).map(function (r) { return r.code; });
   }
 
   function renderIdentity() {
@@ -193,14 +320,22 @@
     if (!canViewApplicants()) $("tabApplicants").hidden = true;
     $("tabAudit").hidden = !isMainAdmin();
     $("mainAdminTools").hidden = !isMainAdmin();
-    // Main Admin-only quality-of-life panels.
-    $("memberSearchCard").hidden = !isMainAdmin();
+    $("tabRoles").hidden = !isMainAdmin();
+    // Role-wise panels (Step 15): search for the Main Admin, Second
+    // Admin, President and Vice Presidents; broadcast history for the
+    // Main Admin, President and Vice Presidents; templates for the two
+    // admin levels, drafts for anyone who can post announcements.
+    $("memberSearchCard").hidden = !isPrivileged();
+    $("memberFilteredCsvBtn").hidden = !isMainAdmin();
     $("inboxTools").hidden = !isMainAdmin();
-    $("broadcastCard").hidden = !isMainAdmin();
+    $("broadcastCard").hidden = !canViewBroadcasts();
     $("needsAttention").hidden = !isMainAdmin();
     $("activityFeed").hidden = !isMainAdmin();
     $("appCsvBtn").hidden = !isMainAdmin();
-    $("annTemplatesBox").hidden = !isMainAdmin();
+    $("annTemplatesBox").hidden = !(isMainAdmin() || isSecondAdmin() || canPostAnnouncement());
+    $("annTemplatesPart").hidden = !(isMainAdmin() || isSecondAdmin());
+    $("annDraftsPart").hidden = !canPostAnnouncement();
+    $("annScheduleBox").hidden = !isMainAdmin();
     $("announcePostCard").hidden = !canPostAnnouncement();
     if (!me.email_verified) {
       $("verifyNotice").hidden = false;
@@ -240,14 +375,22 @@
     $("statMembers").textContent = directory.length;
   }
 
-  // Main Admin only: search by name or login ID, filter by role, and
-  // sort the member list (newest / name A–Z / last sign-in).
+  // Member search, filter and sort — Main Admin, Second Admin,
+  // President and Vice Presidents. Only the Main Admin gets the
+  // "Last sign-in" sort (the sign-in data is Main Admin only).
   function setupMemberSearch() {
-    if (!isMainAdmin()) return;
+    if (!isPrivileged()) return;
+    // Only the Main Admin may search by login ID (they are private —
+    // only he can see other people's). Everyone else searches by name.
+    $("memberSearch").placeholder = isMainAdmin() ? "Search by name or login ID…" : "Search by name…";
     var roleSel = $("memberRoleFilter");
     roleSel.innerHTML = '<option value="all">All roles</option>' + ALL_ROLES.map(function (r) {
       return '<option value="' + r + '">' + ROLE_LABELS[r] + "</option>";
     }).join("");
+    if (!isMainAdmin()) {
+      var signinOpt = $("memberSort").querySelector('option[value="signin"]');
+      if (signinOpt) signinOpt.remove();
+    }
     $("memberSearch").addEventListener("input", function () {
       memberFilter.q = $("memberSearch").value;
       renderDirectory();
@@ -264,14 +407,34 @@
       }
       renderDirectory();
     });
+    var filteredBtn = $("memberFilteredCsvBtn");
+    if (filteredBtn) filteredBtn.addEventListener("click", downloadFilteredMembersCsv);
+  }
+
+  // Main Admin only: download a CSV of exactly the members the current
+  // search / filter shows, not the whole club.
+  function downloadFilteredMembersCsv() {
+    var list = filteredDirectory();
+    function q(v) { return '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"'; }
+    var head = ["Name", "Login ID", "Role", "Door", "Email", "Mobile", "Joined"];
+    var lines = list.map(function (p) {
+      var full = (adminRows || []).filter(function (r) { return r.id === p.id; })[0] || {};
+      return [p.name, p.login_id, ROLE_LABELS[p.role] || p.role, DOOR_LABELS[p.door] || p.door,
+        full.email || "", full.mobile || "", p.created_at || ""].map(q).join(",");
+    });
+    downloadFile("reva-fashion-club-members-filtered-" + new Date().toISOString().slice(0, 10) + ".csv",
+      head.map(q).join(",") + "\n" + lines.join("\n"), "text/csv;charset=utf-8");
   }
 
   function filteredDirectory() {
     var list = directory.slice();
     var q = memberFilter.q.trim().toLowerCase();
     if (q) list = list.filter(function (p) {
+      // Login IDs are private: only the Main Admin may search by them.
+      // Everyone else searches by name only, so a login ID cannot be
+      // fished out by typing part of it.
       return (p.name || "").toLowerCase().indexOf(q) !== -1
-        || (p.login_id || "").toLowerCase().indexOf(q) !== -1;
+        || (isMainAdmin() && (p.login_id || "").toLowerCase().indexOf(q) !== -1);
     });
     if (memberFilter.role !== "all") list = list.filter(function (p) { return p.role === memberFilter.role; });
     if (memberFilter.sort === "name") {
@@ -295,16 +458,17 @@
     $("memberList").innerHTML = list.map(function (p) {
       var self = p.id === me.id;
       return '<div class="row-item">' +
-        '<div class="avatar" aria-hidden="true">' + esc(initials(p.name)) + "</div>" +
+        avatarHtml(p) +
         '<div class="body"><b>' + esc(p.name) + "</b> " +
         '<span class="chip' + (p.role === "admin" || p.role === "second_admin" ? " orange" : p.role === "president" || p.role === "vice_president" ? "" : " ghost") + '">' + esc(ROLE_LABELS[p.role] || p.role) + "</span>" +
-        '<div class="meta">Login ID: ' + esc(p.login_id) + " &middot; " + esc(DOOR_LABELS[p.door]) + " door" + (self ? " &middot; This is you" : "") + "</div>" +
+        '<div class="meta">' + (isMainAdmin() || self ? "Login ID: " + esc(p.login_id) + " &middot; " : "") + esc(DOOR_LABELS[p.door]) + " door" + (self ? " &middot; This is you" : "") + "</div>" +
         '<div class="contact-line" id="contact-' + esc(p.id) + '"></div>' +
         "</div>" +
         '<div class="actions"><button class="btn ghost small" type="button" data-contact="' + esc(p.id) + '">' +
         (self ? "My contact" : "Show contact") + "</button>" +
-        (isPrivileged() && (p.role !== "admin" || self) ? '<button class="btn ghost small" type="button" data-mobile="' + esc(p.id) + '">Update mobile</button>' : "") +
-        (isMainAdmin() ? '<button class="btn ghost small" type="button" data-profile="' + esc(p.id) + '">View profile</button>' : "") + "</div>" +
+        (canUpdateMobile() && (p.role !== "admin" || self) ? '<button class="btn ghost small" type="button" data-mobile="' + esc(p.id) + '">Update mobile</button>' : "") +
+        (isOfficialOrAbove() ? '<button class="btn ghost small" type="button" data-message="' + esc(p.id) + '">Message</button>' : "") +
+        (isOfficialOrAbove() ? '<button class="btn ghost small" type="button" data-profile="' + esc(p.id) + '">View profile</button>' : "") + "</div>" +
         "</div>";
     }).join("");
     document.querySelectorAll("[data-contact]").forEach(function (btn) {
@@ -312,6 +476,9 @@
     });
     document.querySelectorAll("[data-mobile]").forEach(function (btn) {
       btn.addEventListener("click", function () { startMobileEdit(btn.getAttribute("data-mobile")); });
+    });
+    document.querySelectorAll("[data-message]").forEach(function (btn) {
+      btn.addEventListener("click", function () { messageMember(btn.getAttribute("data-message")); });
     });
     document.querySelectorAll("[data-profile]").forEach(function (btn) {
       btn.addEventListener("click", function () { openProfile(btn.getAttribute("data-profile")); });
@@ -395,67 +562,84 @@
     });
   }
 
-  // Member profile view (Main Admin only): everything about one member
-  // in one place — contact, who added them, last sign-in, your private
-  // note, and their activity timeline from the audit log. Name and login
-  // ID can be edited here; the email cannot (it would break sign-in).
+  // Member profile view. Main Admin: everything — contact, who added
+  // them, last sign-in and sign-in history, your private note, their
+  // activity timeline, edit details, suspend. Other officials: the same
+  // card read-only (details, contact as far as they may see it, who
+  // added them) with just a Message button. Name and login ID can be
+  // edited here; the email cannot (it would break sign-in).
   async function openProfile(id) {
     var p = directoryById[id];
     if (!p) return;
+    var editable = isMainAdmin();
     var full = (adminRows || []).filter(function (r) { return r.id === id; })[0] || p;
     var contact = await client.rpc("get_member_contact", { p_id: id });
     var c = (!contact.error && contact.data && contact.data[0]) ? contact.data[0] : { email: null, mobile: null };
-    var timeline = auditRows.filter(function (r) { return r.target_login_id === p.login_id; });
-    $("profileBody").innerHTML =
+    var timeline = editable ? auditRows.filter(function (r) { return r.target_login_id === p.login_id; }) : [];
+    var signins = [];
+    if (editable) {
+      var sh = await client.from("login_events").select("signed_in_at").eq("user_id", id).order("signed_in_at", { ascending: false }).limit(10);
+      if (!sh.error && sh.data) signins = sh.data;
+    }
+    var html =
       '<div style="display:flex;gap:14px;align-items:flex-start">' +
-      '<div class="avatar" aria-hidden="true">' + esc(initials(p.name)) + "</div>" +
+      avatarHtml(p) +
       '<div class="body"><b style="font-size:18px">' + esc(p.name) + "</b> " +
       '<span class="chip' + (p.role === "admin" || p.role === "second_admin" ? " orange" : "") + '">' + esc(ROLE_LABELS[p.role] || p.role) + "</span>" +
-      '<div class="meta">Login ID: ' + esc(p.login_id) + " &middot; " + esc(DOOR_LABELS[p.door]) + " door &middot; Joined " + esc(timeAgo(p.created_at)) + "</div>" +
+      '<div class="meta">' + (editable || p.id === me.id ? "Login ID: " + esc(p.login_id) + " &middot; " : "") + esc(DOOR_LABELS[p.door]) + " door &middot; Joined " + esc(timeAgo(p.created_at)) + "</div>" +
       '<div class="contact-line">Email: ' + esc(c.email || "—") + "  •  Mobile: " + esc(c.mobile || "—") + "</div>" +
       '<div class="meta">Added by ' + (p.added_by_role === "admin" ? "Admin" : esc(p.added_by) + " (" + esc(ROLE_LABELS[p.added_by_role] || p.added_by_role) + ")") + "</div>" +
-      '<div class="meta">Last sign-in: ' + esc(lastSigninText(p.id)) + (full.is_suspended ? " &middot; <b>Suspended</b>" + (full.suspended_reason ? " — " + esc(full.suspended_reason) : "") : "") + "</div>" +
-      "</div></div>" +
-      '<h2 class="sec">Edit <span class="serif-i">details</span></h2>' +
-      '<label for="pfName">Full name</label><input id="pfName" type="text" value="' + esc(p.name) + '" />' +
-      '<label for="pfLogin">Login ID</label><input id="pfLogin" type="text" value="' + esc(p.login_id) + '" />' +
-      '<p class="field-hint">Small letters and numbers only. The email cannot be changed here — it would break the member\u2019s sign-in. If an email is wrong, remove the account and create a new one.</p>' +
-      '<button class="btn small" type="button" id="pfSaveBtn">Save details</button> <span class="muted" id="pfSaveMsg"></span>' +
-      '<h2 class="sec">Private <span class="serif-i">note</span></h2>' +
-      '<p class="muted" style="margin-top:-6px">Only you can see this note.</p>' +
-      '<textarea id="pfNote" placeholder="e.g. Lead choreographer — strong on formations." style="min-height:70px">' + esc(full.admin_notes || "") + "</textarea>" +
-      '<button class="btn ghost small" type="button" id="pfNoteBtn">Save note</button> <span class="muted" id="pfNoteMsg"></span>' +
-      '<h2 class="sec">Recent <span class="serif-i">activity</span></h2>' +
-      (timeline.length ? timeline.slice(0, 10).map(function (r) {
-        return '<div class="meta" style="margin-bottom:6px">' + esc(timeAgo(r.created_at)) + " — <b>" + esc(r.actor_name || "SQL Editor") + "</b> " + esc(r.action) + (r.details ? ": " + esc(r.details) : "") + "</div>";
-      }).join("") : '<p class="muted">No recorded activity for this member yet.</p>') +
+      (editable ? '<div class="meta">Last sign-in: ' + esc(lastSigninText(p.id)) + (full.is_suspended ? " &middot; <b>Suspended</b>" + (full.suspended_reason ? " — " + esc(full.suspended_reason) : "") : "") + "</div>" : "") +
+      "</div></div>";
+    if (editable) {
+      html +=
+        '<h2 class="sec">Edit <span class="serif-i">details</span></h2>' +
+        '<label for="pfName">Full name</label><input id="pfName" type="text" value="' + esc(p.name) + '" />' +
+        '<label for="pfLogin">Login ID</label><input id="pfLogin" type="text" value="' + esc(p.login_id) + '" />' +
+        '<p class="field-hint">Small letters and numbers only. The email cannot be changed here — it would break the member\u2019s sign-in. If an email is wrong, remove the account and create a new one.</p>' +
+        '<button class="btn small" type="button" id="pfSaveBtn">Save details</button> <span class="muted" id="pfSaveMsg"></span>' +
+        '<h2 class="sec">Private <span class="serif-i">note</span></h2>' +
+        '<p class="muted" style="margin-top:-6px">Only you can see this note.</p>' +
+        '<textarea id="pfNote" placeholder="e.g. Lead choreographer — strong on formations." style="min-height:70px">' + esc(full.admin_notes || "") + "</textarea>" +
+        '<button class="btn ghost small" type="button" id="pfNoteBtn">Save note</button> <span class="muted" id="pfNoteMsg"></span>' +
+        '<h2 class="sec">Recent <span class="serif-i">sign-ins</span></h2>' +
+        (signins.length ? signins.map(function (s) {
+          return '<div class="meta" style="margin-bottom:6px">' + esc(timeAgo(s.signed_in_at)) + "</div>";
+        }).join("") : '<p class="muted">No sign-ins recorded yet — history starts from the day it was switched on.</p>') +
+        '<h2 class="sec">Recent <span class="serif-i">activity</span></h2>' +
+        (timeline.length ? timeline.slice(0, 10).map(function (r) {
+          return '<div class="meta" style="margin-bottom:6px">' + esc(timeAgo(r.created_at)) + " — <b>" + esc(r.actor_name || "SQL Editor") + "</b> " + esc(r.action) + (r.details ? ": " + esc(r.details) : "") + "</div>";
+        }).join("") : '<p class="muted">No recorded activity for this member yet.</p>');
+    }
+    html +=
       '<div style="display:flex;gap:8px;margin-top:18px;flex-wrap:wrap">' +
       '<button class="btn small" type="button" id="pfMsgBtn">Message</button>' +
-      (p.role !== "admin" ? '<button class="btn ghost small" type="button" id="pfSuspBtn">' + (full.is_suspended ? "Unsuspend" : "Suspend") + "</button>" : "") +
+      (editable && p.role !== "admin" ? '<button class="btn ghost small" type="button" id="pfSuspBtn">' + (full.is_suspended ? "Unsuspend" : "Suspend") + "</button>" : "") +
       "</div>";
+    $("profileBody").innerHTML = html;
     $("profileModal").hidden = false;
-    $("pfLogin").addEventListener("input", function () {
-      var clean = $("pfLogin").value.toLowerCase().replace(/[^a-z0-9]/g, "");
-      if (clean !== $("pfLogin").value) $("pfLogin").value = clean;
-    });
-    $("pfSaveBtn").addEventListener("click", async function () {
-      var res = await client.rpc("update_member_details", { p_id: id, p_name: $("pfName").value.trim(), p_login_id: $("pfLogin").value.trim().toLowerCase() });
-      if (res.error) { $("pfSaveMsg").textContent = res.error.message; return; }
-      $("pfSaveMsg").textContent = "Saved.";
-      await refreshDirectory();
-      if (isAdmin()) await refreshAdminList();
-    });
-    $("pfNoteBtn").addEventListener("click", async function () {
-      var res = await client.rpc("set_member_note", { p_id: id, p_note: $("pfNote").value });
-      if (res.error) { $("pfNoteMsg").textContent = res.error.message; return; }
-      $("pfNoteMsg").textContent = "Note saved.";
-      if (isAdmin()) await refreshAdminList();
-    });
+    if (editable) {
+      $("pfLogin").addEventListener("input", function () {
+        var clean = $("pfLogin").value.toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (clean !== $("pfLogin").value) $("pfLogin").value = clean;
+      });
+      $("pfSaveBtn").addEventListener("click", async function () {
+        var res = await client.rpc("update_member_details", { p_id: id, p_name: $("pfName").value.trim(), p_login_id: $("pfLogin").value.trim().toLowerCase() });
+        if (res.error) { $("pfSaveMsg").textContent = res.error.message; return; }
+        $("pfSaveMsg").textContent = "Saved.";
+        await refreshDirectory();
+        if (isAdmin()) await refreshAdminList();
+      });
+      $("pfNoteBtn").addEventListener("click", async function () {
+        var res = await client.rpc("set_member_note", { p_id: id, p_note: $("pfNote").value });
+        if (res.error) { $("pfNoteMsg").textContent = res.error.message; return; }
+        $("pfNoteMsg").textContent = "Note saved.";
+        if (isAdmin()) await refreshAdminList();
+      });
+    }
     $("pfMsgBtn").addEventListener("click", function () {
       closeProfile();
-      document.querySelector('nav.tabs button[data-tab="messages"]').click();
-      var sel = $("dmTo");
-      if (sel) { sel.value = id; sel.dispatchEvent(new Event("change")); }
+      messageMember(id);
     });
     var suspBtn = $("pfSuspBtn");
     if (suspBtn) suspBtn.addEventListener("click", async function () {
@@ -477,13 +661,14 @@
   function fillDmRecipients() {
     var sel = $("dmTo");
     var opts = "";
-    // "All members" is only offered to the Main Admin, Second Admin,
-    // President and Vice Presidents (isPrivileged). Everyone else only
-    // sees individual people. The submit handler checks the role again.
-    if (isPrivileged()) {
+    // "All members" is only offered to roles with the broadcast
+    // permission (Main Admin, Second Admin, President, Vice Presidents).
+    // Everyone else only sees individual people. The submit handler
+    // checks the permission again.
+    if (canBroadcast()) {
       opts += '<option value="__ALL__">All members — everyone in the club</option>';
     }
-    // Members ticked in the Admin panel (Main Admin only).
+    // Members ticked in the Admin panel (Main Admin + Second Admin).
     if (bulkSelected.length) {
       opts += '<option value="__BULK__">Selected members (' + bulkSelected.length + ")</option>";
     }
@@ -515,12 +700,12 @@
   function announcementHtml(a) {
     var sender = directoryById[a.sender_id];
     return '<div class="row-item">' +
-      '<div class="avatar" aria-hidden="true">' + esc(initials(sender ? sender.name : "?")) + "</div>" +
+      avatarHtml(sender) +
       '<div class="body"><b>' + esc(sender ? sender.name : "Club") + "</b> " +
       '<span class="chip ghost">' + esc(a.audience === "everyone" ? "Everyone" : a.audience === "officials" ? "Officials only" : "Members only") + "</span>" +
       (a.pinned ? ' <span class="chip orange">Pinned</span>' : "") +
       '<div class="meta">' + esc(timeAgo(a.created_at)) + "</div>" +
-      (isMainAdmin() && readCountsLoaded ? '<div class="meta">Read by ' + (readCounts[a.id] || 0) + " of " + audienceSize(a.audience) + "</div>" : "") +
+      (canViewReadReceipts() && readCountsLoaded ? '<div class="meta">Read by ' + (readCounts[a.id] || 0) + " of " + audienceSize(a.audience) + "</div>" : "") +
       "<p>" + esc(a.body) + "</p></div>" +
       (isMainAdmin() ? '<div class="actions">' +
         '<button class="btn ghost small" type="button" data-ann-pin="' + esc(a.id) + '" data-ann-pinned="' + (a.pinned ? "1" : "0") + '">' + (a.pinned ? "Unpin" : "Pin") + "</button>" +
@@ -531,8 +716,8 @@
 
   // How many people an announcement audience covers (read receipts).
   function audienceSize(audience) {
-    if (audience === "officials") return directory.filter(function (p) { return OFFICE_ROLES.indexOf(p.role) !== -1 || p.role === "admin" || p.role === "second_admin"; }).length;
-    if (audience === "members") return directory.filter(function (p) { return p.role === "member" || p.role === "core_member"; }).length;
+    if (audience === "officials") return directory.filter(function (p) { return p.door === "official" || p.door === "admin"; }).length;
+    if (audience === "members") return directory.filter(function (p) { return p.door === "member"; }).length;
     return directory.length;
   }
 
@@ -588,10 +773,9 @@
       if (!to) { showMsg($("dmMsg"), "Choose who to message."); return; }
       if (!body) { showMsg($("dmMsg"), "Write a message first."); return; }
 
-      // --- Send to all members (Main Admin, Second Admin, President,
-      // Vice Presidents only) ---
+      // --- Send to all members (roles with the broadcast permission) ---
       if (to === "__ALL__") {
-        if (!isPrivileged()) {
+        if (!canBroadcast()) {
           showMsg($("dmMsg"), "Only the Main Admin, Second Admin, President and Vice Presidents can message all members.");
           return;
         }
@@ -611,10 +795,11 @@
         return;
       }
 
-      // --- Send to the members ticked in the Admin panel (Main Admin only) ---
+      // --- Send to the members ticked in the Admin panel (Main Admin
+      // and Second Admin) ---
       if (to === "__BULK__") {
-        if (!isMainAdmin()) {
-          showMsg($("dmMsg"), "Only the Main Admin can message selected members.");
+        if (!(isMainAdmin() || isSecondAdmin())) {
+          showMsg($("dmMsg"), "Only the Main Admin and Second Admin can message selected members.");
           return;
         }
         var bulkTargets = directory.filter(function (p) { return bulkSelected.indexOf(p.id) !== -1; });
@@ -738,7 +923,7 @@
           ? (isBroadcast ? "To All members (" + row.count + (row.count === 1 ? " person" : " people") + ")" : "To " + esc((directoryById[m.recipient_id] || {}).name || "…"))
           : "From " + esc(sender ? sender.name : "…"));
       return '<div class="row-item' + (unread ? " unread" : "") + '">' +
-        '<div class="avatar" aria-hidden="true">' + esc(initials(sender ? sender.name : "?")) + "</div>" +
+        avatarHtml(sender) +
         '<div class="body"><b>' + label + "</b> " + (unread ? '<span class="chip orange">Unread</span>' : "") + (isBroadcast ? ' <span class="chip ghost">All members</span>' : "") +
         '<div class="meta">' + esc(timeAgo(m.created_at)) + (m.subject && m.kind === "dm" ? " &middot; " + esc(m.subject) : "") + "</div>" +
         "<p>" + esc(m.body) + "</p></div>" +
@@ -801,47 +986,88 @@
       await refreshDashboard();
     });
 
-    if (!isMainAdmin()) return;
+    // Search announcements — everyone. It filters the list already
+    // loaded, so it works even before the next refresh.
+    var annSearch = $("annSearch");
+    if (annSearch) annSearch.addEventListener("input", function () {
+      annSearchQ = annSearch.value.trim().toLowerCase();
+      renderAnnouncements();
+    });
+
+    // Templates: Main Admin and Second Admin. Drafts: anyone who can
+    // post announcements (officials and admins). The database only
+    // returns the rows each role may see.
+    var canTemplates = isMainAdmin() || isSecondAdmin();
+    var canDrafts = canPostAnnouncement();
+    if (!canTemplates && !canDrafts) return;
     loadAnnouncementTemplates();
-    $("annTemplateSel").addEventListener("change", function () {
-      var t = templatesCache.filter(function (x) { return x.id === $("annTemplateSel").value; })[0];
-      if (t) { $("annAudience").value = t.audience || "everyone"; $("annBody").value = t.body || ""; }
-    });
-    $("annSaveTemplateBtn").addEventListener("click", async function () {
-      var body = $("annBody").value.trim();
-      if (!body) { showMsg($("annMsg"), "Write the announcement first."); return; }
-      var title = window.prompt("Name for this template? (e.g. Audition call)");
-      if (title === null) return;
-      var res = await client.from("announcement_templates").insert({
-        kind: "template", title: title.trim() || "Untitled template",
-        body: body, audience: $("annAudience").value, created_by: me.id
+    if (canTemplates) {
+      $("annTemplateSel").addEventListener("change", function () {
+        var t = templatesCache.filter(function (x) { return x.id === $("annTemplateSel").value; })[0];
+        if (t) { $("annAudience").value = t.audience || "everyone"; $("annBody").value = t.body || ""; }
       });
-      if (res.error) { showMsg($("annMsg"), "Could not save the template: " + res.error.message); return; }
-      showMsg($("annMsg"), "Template saved.", "ok");
-      await loadAnnouncementTemplates();
-    });
-    $("annDraftSel").addEventListener("change", function () {
-      var d = draftsCache.filter(function (x) { return x.id === $("annDraftSel").value; })[0];
-      if (d) { $("annAudience").value = d.audience || "everyone"; $("annBody").value = d.body || ""; }
-    });
-    $("annSaveDraftBtn").addEventListener("click", async function () {
-      var body = $("annBody").value.trim();
-      if (!body) { showMsg($("annMsg"), "Write the announcement first."); return; }
-      var res = await client.from("announcement_templates").insert({
-        kind: "draft", title: body.slice(0, 40) + (body.length > 40 ? "…" : ""),
-        body: body, audience: $("annAudience").value, created_by: me.id
+      $("annSaveTemplateBtn").addEventListener("click", async function () {
+        var body = $("annBody").value.trim();
+        if (!body) { showMsg($("annMsg"), "Write the announcement first."); return; }
+        var title = window.prompt("Name for this template? (e.g. Audition call)");
+        if (title === null) return;
+        var res = await client.from("announcement_templates").insert({
+          kind: "template", title: title.trim() || "Untitled template",
+          body: body, audience: $("annAudience").value, created_by: me.id
+        });
+        if (res.error) { showMsg($("annMsg"), "Could not save the template: " + res.error.message); return; }
+        showMsg($("annMsg"), "Template saved.", "ok");
+        await loadAnnouncementTemplates();
       });
-      if (res.error) { showMsg($("annMsg"), "Could not save the draft: " + res.error.message); return; }
-      showMsg($("annMsg"), "Draft saved.", "ok");
-      await loadAnnouncementTemplates();
-    });
-    $("annDeleteDraftBtn").addEventListener("click", async function () {
-      var id = $("annDraftSel").value;
-      if (!id) return;
-      if (!window.confirm("Delete this draft?")) return;
-      await client.from("announcement_templates").delete().eq("id", id);
-      await loadAnnouncementTemplates();
-    });
+    }
+    if (canDrafts) {
+      $("annDraftSel").addEventListener("change", function () {
+        var d = draftsCache.filter(function (x) { return x.id === $("annDraftSel").value; })[0];
+        if (d) { $("annAudience").value = d.audience || "everyone"; $("annBody").value = d.body || ""; }
+      });
+      $("annSaveDraftBtn").addEventListener("click", async function () {
+        var body = $("annBody").value.trim();
+        if (!body) { showMsg($("annMsg"), "Write the announcement first."); return; }
+        var res = await client.from("announcement_templates").insert({
+          kind: "draft", title: body.slice(0, 40) + (body.length > 40 ? "…" : ""),
+          body: body, audience: $("annAudience").value, created_by: me.id
+        });
+        if (res.error) { showMsg($("annMsg"), "Could not save the draft: " + res.error.message); return; }
+        showMsg($("annMsg"), "Draft saved.", "ok");
+        await loadAnnouncementTemplates();
+      });
+      $("annDeleteDraftBtn").addEventListener("click", async function () {
+        var id = $("annDraftSel").value;
+        if (!id) return;
+        if (!window.confirm("Delete this draft?")) return;
+        await client.from("announcement_templates").delete().eq("id", id);
+        await loadAnnouncementTemplates();
+      });
+    }
+    // Schedule an announcement — Main Admin only. It posts the next
+    // time someone who can post announcements opens the portal after
+    // the scheduled time.
+    if (isMainAdmin()) {
+      var schedBtn = $("annSchedBtn");
+      if (schedBtn) schedBtn.addEventListener("click", async function () {
+        var body = $("annBody").value.trim();
+        if (!body) { showMsg($("annMsg"), "Write the announcement first."); return; }
+        var when = $("annSchedWhen").value;
+        if (!when) { showMsg($("annMsg"), "Pick a date and time to schedule it."); return; }
+        var at = new Date(when);
+        if (isNaN(at.getTime()) || at.getTime() <= Date.now()) {
+          showMsg($("annMsg"), "Pick a future date and time."); return;
+        }
+        var res = await client.from("scheduled_announcements").insert({
+          subject: null, body: body, audience: $("annAudience").value,
+          scheduled_for: at.toISOString(), created_by: me.id
+        });
+        if (res.error) { showMsg($("annMsg"), "Could not schedule: " + res.error.message); return; }
+        $("annBody").value = ""; $("annSchedWhen").value = "";
+        showMsg($("annMsg"), "Scheduled — it will post the next time someone opens the portal after " + at.toLocaleString() + ".", "ok");
+        await refreshScheduled();
+      });
+    }
   }
 
   async function refreshAnnouncements() {
@@ -854,14 +1080,56 @@
     var rows = annRows.map(function (a) { return { message_id: a.id, reader_id: me.id }; });
     client.from("message_reads").upsert(rows, { onConflict: "message_id,reader_id", ignoreDuplicates: true })
       .then(function () {}, function () {});
-    if (isMainAdmin()) {
+    if (canViewReadReceipts()) {
       var reads = await client.from("message_reads").select("message_id");
       readCounts = {};
       if (!reads.error && reads.data) reads.data.forEach(function (r) { readCounts[r.message_id] = (readCounts[r.message_id] || 0) + 1; });
       readCountsLoaded = true;
     }
-    $("announceList").innerHTML = annRows.map(function (a) { return announcementHtml(a); }).join("");
+    renderAnnouncements();
+  }
+
+  // Render the loaded announcements, filtered by the search box.
+  function renderAnnouncements() {
+    var list = annRows;
+    if (annSearchQ) {
+      list = list.filter(function (a) {
+        var sender = directoryById[a.sender_id];
+        return (a.body || "").toLowerCase().indexOf(annSearchQ) !== -1
+          || (sender && (sender.name || "").toLowerCase().indexOf(annSearchQ) !== -1);
+      });
+    }
+    if (!list.length) {
+      $("announceList").innerHTML = '<p class="empty">' + (annSearchQ ? "No announcements match that search." : "No announcements yet.") + "</p>";
+      return;
+    }
+    $("announceList").innerHTML = list.map(function (a) { return announcementHtml(a); }).join("");
     wireAnnouncementAdmin();
+  }
+
+  // Main Admin only: scheduled announcements waiting to post, and the
+  // ones already posted. Cancel removes a waiting one.
+  async function refreshScheduled() {
+    var res = await client.from("scheduled_announcements").select("*").order("scheduled_for", { ascending: true }).limit(20);
+    if (res.error) { $("schedList").innerHTML = '<p class="empty">Could not load scheduled announcements.</p>'; return; }
+    schedRows = res.data || [];
+    if (!schedRows.length) { $("schedList").innerHTML = '<p class="empty">Nothing scheduled.</p>'; return; }
+    $("schedList").innerHTML = schedRows.map(function (s) {
+      return '<div class="row-item">' +
+        '<div class="body"><b>' + (s.posted ? "Posted" : "Scheduled for " + esc(new Date(s.scheduled_for).toLocaleString())) + "</b> " +
+        '<span class="chip ghost">' + esc(s.audience === "everyone" ? "Everyone" : s.audience === "officials" ? "Officials only" : "Members only") + "</span>" +
+        '<div class="meta">' + esc(timeAgo(s.created_at)) + "</div>" +
+        "<p>" + esc(s.body) + "</p></div>" +
+        (!s.posted ? '<div class="actions"><button class="btn ghost small" type="button" data-sched-cancel="' + esc(s.id) + '">Cancel</button></div>' : "") +
+        "</div>";
+    }).join("");
+    document.querySelectorAll("[data-sched-cancel]").forEach(function (btn) {
+      btn.addEventListener("click", async function () {
+        if (!window.confirm("Cancel this scheduled announcement?")) return;
+        await client.from("scheduled_announcements").delete().eq("id", btn.getAttribute("data-sched-cancel"));
+        await refreshScheduled();
+      });
+    });
   }
 
   // Main Admin only: every past "All members" broadcast, with how many
@@ -882,7 +1150,7 @@
     $("broadcastList").innerHTML = order.slice(0, 20).map(function (g) {
       var m = g.m;
       var sender = directoryById[m.sender_id];
-      return '<div class="row-item"><div class="avatar" aria-hidden="true">' + esc(initials(sender ? sender.name : "?")) + "</div>" +
+      return '<div class="row-item">' + avatarHtml(sender) +
         '<div class="body"><b>To All members (' + g.count + (g.count === 1 ? " person" : " people") + ")</b> " +
         '<span class="chip ghost">Broadcast</span>' +
         '<div class="meta">' + esc(timeAgo(m.created_at)) + " &middot; From " + esc(sender ? sender.name : "…") + (m.subject ? " &middot; " + esc(m.subject) : "") + "</div>" +
@@ -922,7 +1190,7 @@
         ["new", "contacted", "shortlisted", "reviewed"].map(function (st) {
           return '<option value="' + st + '"' + (a.status === st ? " selected" : "") + ">" + STAGE_LABELS[st] + "</option>";
         }).join("") + "</select>" +
-        (isMainAdmin() ? '<button class="btn ghost small" type="button" data-app-convert="' + esc(a.id) + '">Make member</button>' : "") +
+        (canViewApplicants() ? '<button class="btn ghost small" type="button" data-app-convert="' + esc(a.id) + '">Make member</button>' : "") +
         (isMainAdmin() ? '<button class="btn ghost small" type="button" data-app-remove="' + esc(a.id) + '" data-app-name="' + esc(a.name) + '">Remove</button>' : "") +
         "</div></div>";
     }).join("");
@@ -1013,23 +1281,27 @@
   /* ---------------- create account ---------------- */
   var newAccount = null; // { id, email } of the account just created (for OTP step)
 
-  function setupCreateForm() {
-    if (!canCreate()) return;
+  // Fill the create-account role select with exactly the roles I may
+  // assign (creatableRoles). Called at boot and after any role change.
+  function fillCreateRoleOptions() {
     var roleSel = $("cRole");
-    // Main Admin: any role, including another Main Admin.
-    // Second Admin: any role except Main Admin.
-    // Office holders: Member / Core Member only.
-    var roles = isMainAdmin() ? ALL_ROLES
-      : isAdmin() ? ALL_ROLES.filter(function (r) { return r !== "admin"; })
-      : ["member", "core_member"];
-    roleSel.innerHTML = roles.map(function (r) {
+    if (!roleSel) return;
+    var keep = roleSel.value;
+    roleSel.innerHTML = creatableRoles().map(function (r) {
       return '<option value="' + r + '">' + ROLE_LABELS[r] + "</option>";
     }).join("");
+    if (keep && creatableRoles().indexOf(keep) !== -1) roleSel.value = keep;
+    updatePreview();
+  }
+
+  function setupCreateForm() {
+    if (!canCreate()) return;
+    fillCreateRoleOptions();
     $("roleHint").textContent = isMainAdmin()
       ? "Main Admin: you can assign any role, including another Main Admin."
       : isAdmin()
       ? "Second Admin: you can create Second Admins and any other role, except Main Admin."
-      : "Office holders can only create Member / Core Member accounts. Other roles are assigned by the Admins.";
+      : "You can create accounts for the roles your permissions allow. Other roles are assigned by the Admins.";
 
     // Login ID rule: small letters and numbers only — lowercased and
     // stripped of capitals, spaces and symbols as typed.
@@ -1065,8 +1337,8 @@
         showMsg($("createMsg"), "Only the Main Admin can create another Main Admin.");
         return;
       }
-      if (!isAdmin() && OFFICE_ROLES.indexOf(role) !== -1) {
-        showMsg($("createMsg"), "Only the Admins can assign offices. Choose Member or Core Member.");
+      if (creatableRoles().indexOf(role) === -1) {
+        showMsg($("createMsg"), "Your role cannot create that kind of account. Choose one of the roles listed.");
         return;
       }
       $("createBtn").disabled = true;
@@ -1207,7 +1479,25 @@
   /* ---------------- admin panel ---------------- */
   function setupAdmin() {
     if (!isAdmin()) return;
-    if (!isMainAdmin()) return;
+    // Bulk message (Main Admin + Second Admin) is wired for both admin
+    // levels; everything else in this card is Main Admin only.
+    var msgBtn = $("bulkMsgBtn");
+    if (msgBtn) msgBtn.addEventListener("click", bulkMessage);
+    var clearBtn = $("bulkClearBtn");
+    if (clearBtn) clearBtn.addEventListener("click", function () {
+      bulkSelected = [];
+      document.querySelectorAll("[data-bulk]").forEach(function (cb) { cb.checked = false; });
+      updateBulkBar();
+      fillDmRecipients();
+    });
+    if (!isMainAdmin()) {
+      // Second Admins can tick members and message them, but never
+      // suspend or remove anyone in bulk.
+      ["bulkSuspendBtn", "bulkUnsuspendBtn", "bulkRemoveBtn"].forEach(function (id) {
+        var b = $(id); if (b) b.hidden = true;
+      });
+      return;
+    }
     var csvBtn = $("csvBtn");
     if (csvBtn) csvBtn.addEventListener("click", downloadMembersCsv);
     var backupBtn = $("backupBtn");
@@ -1228,21 +1518,12 @@
         "Name,Login ID,Email,Mobile,Role\nAnanya Sharma,ananya01,ananya@example.com,9876501234,member\nRahul Verma,rahul02,rahul@example.com,9876501235,core_member\n",
         "text/csv;charset=utf-8");
     });
-    var msgBtn = $("bulkMsgBtn");
-    if (msgBtn) msgBtn.addEventListener("click", bulkMessage);
     var suspBtn = $("bulkSuspendBtn");
     if (suspBtn) suspBtn.addEventListener("click", function () { bulkSuspend(true); });
     var unsuspBtn = $("bulkUnsuspendBtn");
     if (unsuspBtn) unsuspBtn.addEventListener("click", function () { bulkSuspend(false); });
     var remBtn = $("bulkRemoveBtn");
     if (remBtn) remBtn.addEventListener("click", bulkRemove);
-    var clearBtn = $("bulkClearBtn");
-    if (clearBtn) clearBtn.addEventListener("click", function () {
-      bulkSelected = [];
-      document.querySelectorAll("[data-bulk]").forEach(function (cb) { cb.checked = false; });
-      updateBulkBar();
-      fillDmRecipients();
-    });
   }
 
   // Main Admin only: open / close the public Join form.
@@ -1580,23 +1861,30 @@
     if (!rows.length) { $("adminList").innerHTML = '<p class="empty">No accounts yet.</p>'; return; }
     $("adminList").innerHTML = rows.map(function (p) {
       var viewerIsMain = isMainAdmin();
-      var canChangeRole = viewerIsMain ? p.role !== "admin" : (p.role !== "admin" && p.role !== "second_admin");
-      var canRemove = p.role !== "admin" && (p.role !== "second_admin" || viewerIsMain);
+      var viewerIsSecond = isSecondAdmin();
+      // Who may change this row's role: the Main Admin may change any
+      // role except his own; a Second Admin may change anyone except
+      // Main Admins and Second Admins (only the Main Admin touches
+      // admin-door accounts).
+      var canChangeRole = viewerIsMain ? p.role !== "admin"
+        : viewerIsSecond ? (p.door !== "admin")
+        : false;
+      var canRemove = p.role !== "admin" && (p.door !== "admin" || viewerIsMain);
       var opts = ALL_ROLES.filter(function (r) { return viewerIsMain || r !== "admin"; }).map(function (r) {
         return '<option value="' + r + '"' + (p.role === r ? " selected" : "") + ">" + ROLE_LABELS[r] + "</option>";
       }).join("");
       var rowNote = p.role === "admin"
         ? '<span class="muted">Main Admin — this account cannot be removed, and its role cannot be changed.</span>'
-        : (p.role === "second_admin" && !viewerIsMain)
-        ? '<span class="muted">Only the Main Admin can change or remove a Second Admin.</span>'
+        : (p.door === "admin" && !viewerIsMain)
+        ? '<span class="muted">Only the Main Admin can change or remove an Admin-door account.</span>'
         : "";
       return '<div class="row-item">' +
-        '<div class="avatar" aria-hidden="true">' + esc(initials(p.name)) + "</div>" +
+        avatarHtml(p) +
         '<div class="body"><b>' + esc(p.name) + "</b> " +
         '<span class="chip' + (p.role === "admin" || p.role === "second_admin" ? " orange" : "") + '">' + esc(ROLE_LABELS[p.role] || p.role) + "</span> " +
         (p.email_verified ? '<span class="chip ghost">Email verified</span>' : '<span class="chip ghost">Email not verified</span>') +
         (p.is_suspended ? ' <span class="chip orange">Suspended</span>' : "") +
-        '<div class="meta">Login ID: ' + esc(p.login_id) + " &middot; " + esc(DOOR_LABELS[p.door]) + " door &middot; Added by " +
+        '<div class="meta">' + (viewerIsMain || p.id === me.id ? "Login ID: " + esc(p.login_id) + " &middot; " : "") + esc(DOOR_LABELS[p.door]) + " door &middot; Added by " +
         (p.added_by_role === "admin" ? "Admin" : esc(p.added_by) + " (" + esc(ROLE_LABELS[p.added_by_role] || p.added_by_role) + ")") +
         " &middot; " + esc(timeAgo(p.created_at)) + "</div>" +
         '<div class="contact-line">Email: ' + esc(p.email || "—") + "  •  Mobile: " + esc(p.mobile || "—") + "</div>" +
@@ -1604,8 +1892,8 @@
         (viewerIsMain && p.admin_notes ? '<div class="meta">Note: ' + esc(p.admin_notes) + "</div>" : "") +
         (viewerIsMain ? '<div class="meta">Last sign-in: ' + esc(lastSigninText(p.id)) + "</div>" : "") +
         '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center">' +
-        (viewerIsMain ? '<input type="checkbox" data-bulk="' + esc(p.id) + '" aria-label="Select ' + esc(p.name) + '" style="width:auto;margin:0" />' : "") +
-        (viewerIsMain ? '<button class="btn ghost small" type="button" data-profile="' + esc(p.id) + '">View profile</button>' : "") +
+        (viewerIsMain || viewerIsSecond ? '<input type="checkbox" data-bulk="' + esc(p.id) + '" aria-label="Select ' + esc(p.name) + '" style="width:auto;margin:0"' + (bulkSelected.indexOf(p.id) !== -1 ? " checked" : "") + " />" : "") +
+        '<button class="btn ghost small" type="button" data-profile="' + esc(p.id) + '">View profile</button>' +
         '<label style="margin:0" for="role-' + esc(p.id) + '">Role</label>' +
         '<select id="role-' + esc(p.id) + '" data-role-for="' + esc(p.id) + '" style="width:auto;margin:0"' + (canChangeRole ? "" : " disabled") + '>' + opts + "</select>" +
         rowNote +
@@ -1730,6 +2018,138 @@
       '<div class="muted" style="margin-top:10px">' + roleLines + "</div>";
   }
 
+  /* ---------------- club roles (Main Admin only) ---------------- */
+  // Create, edit and delete custom club roles, and see every role's
+  // permissions at a glance. The 13 built-in roles cannot be edited or
+  // deleted — their permissions are the club's settled rules. A custom
+  // role only ever gets the 8 permission switches; the Admin panel
+  // powers (suspend, lockdown, audit log, backup) stay with the two
+  // admin levels.
+  function setupRoles() {
+    if (!isMainAdmin()) return;
+    $("roleCode").addEventListener("input", function () {
+      var clean = $("roleCode").value.toLowerCase().replace(/[^a-z0-9_]/g, "");
+      if (clean !== $("roleCode").value) $("roleCode").value = clean;
+    });
+    $("roleSaveBtn").addEventListener("click", saveRole);
+    var cancelBtn = $("roleCancelBtn");
+    if (cancelBtn) cancelBtn.addEventListener("click", resetRoleForm);
+  }
+
+  async function refreshRoles() {
+    await loadRoles();
+    var list = $("rolesList");
+    if (!list) return;
+    if (!clubRoles.length) { list.innerHTML = '<p class="empty">No roles found.</p>'; return; }
+    list.innerHTML = clubRoles.map(function (r) {
+      var count = directory.filter(function (p) { return p.role === r.code; }).length;
+      var perms = ROLE_PERMS.filter(function (pm) { return r[pm.key]; }).map(function (pm) { return pm.short; });
+      return '<div class="row-item">' +
+        '<div class="body"><b>' + esc(r.label) + "</b> " +
+        '<span class="chip' + (r.door === "admin" ? " orange" : r.door === "official" ? "" : " ghost") + '">' + esc(DOOR_LABELS[r.door]) + " door</span> " +
+        '<span class="chip ghost">' + (r.is_builtin ? "Built-in" : "Custom") + "</span>" +
+        '<div class="meta">Code: ' + esc(r.code) + " &middot; " + count + (count === 1 ? " member" : " members") + "</div>" +
+        '<div class="meta">' + (perms.length ? esc(perms.join(" · ")) : "No permissions") + "</div>" +
+        "</div>" +
+        (!r.is_builtin ? '<div class="actions">' +
+          '<button class="btn ghost small" type="button" data-role-edit="' + esc(r.code) + '">Edit</button>' +
+          (count === 0 ? '<button class="btn ghost small" type="button" data-role-delete="' + esc(r.code) + '" data-role-label="' + esc(r.label) + '">Delete</button>' : "") +
+          "</div>" : "") +
+        "</div>";
+    }).join("");
+    document.querySelectorAll("[data-role-edit]").forEach(function (btn) {
+      btn.addEventListener("click", function () { editRole(btn.getAttribute("data-role-edit")); });
+    });
+    document.querySelectorAll("[data-role-delete]").forEach(function (btn) {
+      btn.addEventListener("click", async function () {
+        var code = btn.getAttribute("data-role-delete");
+        if (!window.confirm("Delete the role “" + btn.getAttribute("data-role-label") + "”? It can only be deleted when nobody holds it.")) return;
+        var res = await client.from("club_roles").delete().eq("code", code);
+        if (res.error) { alert("Could not delete the role: " + res.error.message); return; }
+        await refreshRoles();
+        renderDirectory();
+        fillCreateRoleOptions();
+        if (isAdmin()) await refreshAdminList();
+      });
+    });
+    // Permissions chart: every role against every permission.
+    var chart = $("permsChart");
+    if (chart) {
+      chart.innerHTML =
+        '<div style="overflow-x:auto"><table class="perms"><thead><tr><th>Role</th>' +
+        ROLE_PERMS.map(function (pm) { return "<th>" + esc(pm.short) + "</th>"; }).join("") +
+        "</tr></thead><tbody>" +
+        clubRoles.map(function (r) {
+          return "<tr><td><b>" + esc(r.label) + "</b></td>" +
+            ROLE_PERMS.map(function (pm) { return "<td>" + (r[pm.key] ? "✓" : "—") + "</td>"; }).join("") +
+            "</tr>";
+        }).join("") +
+        "</tbody></table></div>";
+    }
+  }
+
+  function editRole(code) {
+    var r = roleRow(code);
+    if (!r || r.is_builtin) return;
+    editingRoleCode = code;
+    $("roleCode").value = r.code;
+    $("roleCode").disabled = true;
+    $("roleLabel").value = r.label;
+    $("roleDoor").value = r.door;
+    ROLE_PERMS.forEach(function (pm) {
+      var cb = $("perm-" + pm.key);
+      if (cb) cb.checked = !!r[pm.key];
+    });
+    $("roleSaveBtn").textContent = "Save changes";
+    $("roleCancelBtn").hidden = false;
+    hideMsg($("roleMsg"));
+    $("roleForm").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  function resetRoleForm() {
+    editingRoleCode = null;
+    $("roleCode").value = "";
+    $("roleCode").disabled = false;
+    $("roleLabel").value = "";
+    $("roleDoor").value = "official";
+    ROLE_PERMS.forEach(function (pm) {
+      var cb = $("perm-" + pm.key);
+      if (cb) cb.checked = false;
+    });
+    $("roleSaveBtn").textContent = "Create role";
+    $("roleCancelBtn").hidden = true;
+    hideMsg($("roleMsg"));
+  }
+
+  async function saveRole() {
+    var msg = $("roleMsg");
+    var code = $("roleCode").value.trim().toLowerCase();
+    var label = $("roleLabel").value.trim();
+    var door = $("roleDoor").value;
+    if (!code) { showMsg(msg, "Give the role a code (small letters, numbers and _ only)."); return; }
+    if (!/^[a-z0-9_]+$/.test(code)) { showMsg(msg, "The code can only have small letters, numbers and _."); return; }
+    if (!label) { showMsg(msg, "Give the role a display name."); return; }
+    var row = { code: code, label: label, door: door, is_builtin: false };
+    ROLE_PERMS.forEach(function (pm) {
+      var cb = $("perm-" + pm.key);
+      row[pm.key] = !!(cb && cb.checked);
+    });
+    var res;
+    if (editingRoleCode) {
+      res = await client.from("club_roles").update(row).eq("code", editingRoleCode);
+    } else {
+      res = await client.from("club_roles").insert(row);
+    }
+    if (res.error) { showMsg(msg, "Could not save the role: " + res.error.message); return; }
+    var wasEditing = editingRoleCode;
+    resetRoleForm();
+    showMsg(msg, wasEditing ? "Role updated." : "Role created — it now appears in the create-account form.", "ok");
+    await refreshRoles();
+    renderDirectory();
+    fillCreateRoleOptions();
+    if (isAdmin()) await refreshAdminList();
+  }
+
   /* ---------------- settings ---------------- */
   function setupSettings() {
     $("passForm").addEventListener("submit", async function (e) {
@@ -1744,6 +2164,74 @@
       if (res.error) { showMsg($("passMsg"), "Could not change the password: " + res.error.message); return; }
       $("newPass").value = ""; $("newPass2").value = "";
       showMsg($("passMsg"), "Password changed.", "ok");
+    });
+
+    // My own mobile number. This changes the contact number only — it
+    // does NOT change the sign-in password.
+    var myMobileNow = $("myMobileNow");
+    if (myMobileNow) myMobileNow.textContent = me.mobile || "—";
+    var myPhotoPreview = $("myPhotoPreview");
+    if (myPhotoPreview) myPhotoPreview.innerHTML = avatarHtml(me);
+    var myMobileBtn = $("myMobileSaveBtn");
+    if (myMobileBtn) myMobileBtn.addEventListener("click", async function () {
+      hideMsg($("myMobileMsg"));
+      var mobile = $("myMobileInput").value.replace(/[^0-9]/g, "");
+      if (mobile.length < 10) { showMsg($("myMobileMsg"), "Enter the full mobile number (at least 10 digits)."); return; }
+      myMobileBtn.disabled = true;
+      var res = await client.rpc("update_my_mobile", { p_mobile: mobile });
+      myMobileBtn.disabled = false;
+      if (res.error) { showMsg($("myMobileMsg"), "Could not update: " + res.error.message); return; }
+      me.mobile = mobile;
+      $("myMobileNow").textContent = mobile;
+      $("myMobileInput").value = "";
+      $("setContact").textContent = "Login ID: " + me.login_id + "  •  " + me.email + "  •  " + me.mobile;
+      showMsg($("myMobileMsg"), "Mobile number updated.", "ok");
+      await refreshDirectory();
+    });
+
+    // My profile photo (max 2 MB, image files only). It is stored in
+    // the club's public "avatars" bucket, so the photo link is public.
+    var myPhotoBtn = $("myPhotoUploadBtn");
+    if (myPhotoBtn) myPhotoBtn.addEventListener("click", async function () {
+      hideMsg($("myPhotoMsg"));
+      var file = $("myPhotoFile").files[0];
+      if (!file) { showMsg($("myPhotoMsg"), "Choose a photo first."); return; }
+      if (!file.type || file.type.indexOf("image/") !== 0) { showMsg($("myPhotoMsg"), "Choose an image file (JPG, PNG or WebP)."); return; }
+      if (file.size > 2 * 1024 * 1024) { showMsg($("myPhotoMsg"), "That photo is over 2 MB — pick a smaller one."); return; }
+      var ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+      var path = me.id + "/avatar." + ext;
+      myPhotoBtn.disabled = true;
+      var up = await client.storage.from("avatars").upload(path, file, { upsert: true, contentType: file.type });
+      if (up.error) {
+        myPhotoBtn.disabled = false;
+        showMsg($("myPhotoMsg"), "Could not upload: " + up.error.message);
+        return;
+      }
+      var pub = client.storage.from("avatars").getPublicUrl(path);
+      var url = pub.data ? pub.data.publicUrl : null;
+      if (!url) {
+        myPhotoBtn.disabled = false;
+        showMsg($("myPhotoMsg"), "Upload worked but the photo link could not be read. Try again.");
+        return;
+      }
+      var res = await client.rpc("set_my_avatar", { p_url: url });
+      myPhotoBtn.disabled = false;
+      if (res.error) { showMsg($("myPhotoMsg"), "Could not save the photo: " + res.error.message); return; }
+      me.avatar_url = url;
+      $("myPhotoPreview").innerHTML = avatarHtml(me);
+      $("myPhotoFile").value = "";
+      showMsg($("myPhotoMsg"), "Photo updated.", "ok");
+      await refreshDirectory();
+    });
+    var myPhotoRemove = $("myPhotoRemoveBtn");
+    if (myPhotoRemove) myPhotoRemove.addEventListener("click", async function () {
+      hideMsg($("myPhotoMsg"));
+      var res = await client.rpc("set_my_avatar", { p_url: null });
+      if (res.error) { showMsg($("myPhotoMsg"), "Could not remove the photo: " + res.error.message); return; }
+      me.avatar_url = null;
+      $("myPhotoPreview").innerHTML = avatarHtml(me);
+      showMsg($("myPhotoMsg"), "Photo removed.", "ok");
+      await refreshDirectory();
     });
   }
 
