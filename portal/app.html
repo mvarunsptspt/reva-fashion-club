@@ -127,6 +127,13 @@
   .verify-box{display:flex;gap:10px;flex-wrap:wrap}
   .verify-box input{flex:1;min-width:160px;margin-bottom:0}
   .otp-input{letter-spacing:.5em;text-align:center;font-weight:800}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .toolbar input,.toolbar select{flex:1;min-width:160px;margin-bottom:0}
+  .toolbar select{flex:0 1 200px}
+  .modal-overlay{position:fixed;inset:0;background:rgba(13,12,10,.6);z-index:100;display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto}
+  .modal-overlay[hidden]{display:none}
+  .modal{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:clamp(18px,3.5vw,26px);width:min(640px,100%);position:relative}
+  .modal .close-x{position:absolute;top:14px;right:14px}
   @media (prefers-reduced-motion:reduce){.btn{transition:none}}
 </style>
 </head>
@@ -180,6 +187,16 @@
         <div class="stat"><b id="statAnn">–</b><span>Announcements</span></div>
       </div>
 
+      <div class="card" id="needsAttention" hidden>
+        <h2 class="sec" style="margin-top:0">Needs <span class="serif-i">attention</span></h2>
+        <div id="needsAttentionList"><p class="empty" style="padding:4px">Checking…</p></div>
+      </div>
+
+      <div class="card" id="activityFeed" hidden>
+        <h2 class="sec" style="margin-top:0">Latest <span class="serif-i">activity</span></h2>
+        <div id="activityFeedList"><p class="empty" style="padding:4px">Loading…</p></div>
+      </div>
+
       <h2 class="sec">Latest <span class="serif-i">announcements</span></h2>
       <div id="dashAnnouncements"><p class="empty">Loading announcements…</p></div>
     </section>
@@ -188,6 +205,18 @@
     <section class="tab" id="tab-members" role="tabpanel" hidden>
       <h1 class="page">Club <em>members</em></h1>
       <p class="lede">Everyone in the club. Contact details (email and mobile) are only shown to the President, Vice Presidents and the Admins (Main Admin and Second Admins) — and to you, on your own record. The Main Admin, Second Admin, President and Vice Presidents can also update a member's mobile number from here — use the “Update mobile” button on their row.</p>
+      <div class="card" id="memberSearchCard" hidden>
+        <div class="toolbar">
+          <input id="memberSearch" type="search" placeholder="Search by name or login ID…" autocomplete="off" />
+          <select id="memberRoleFilter"></select>
+          <select id="memberSort">
+            <option value="newest">Newest first</option>
+            <option value="name">Name A–Z</option>
+            <option value="signin">Last sign-in</option>
+          </select>
+        </div>
+        <p class="muted" style="margin:0">Main Admin only — search, filter and sort the member list.</p>
+      </div>
       <div id="memberList"><p class="empty">Loading members…</p></div>
     </section>
 
@@ -229,7 +258,25 @@
       </div>
 
       <h2 class="sec">Inbox</h2>
+      <div class="card" id="inboxTools" hidden>
+        <div class="toolbar">
+          <input id="inboxSearch" type="search" placeholder="Search messages…" autocomplete="off" />
+          <select id="inboxFilter">
+            <option value="all">All messages</option>
+            <option value="unread">Unread</option>
+            <option value="reports">Reports</option>
+            <option value="dms">Direct messages</option>
+          </select>
+          <button class="btn ghost small" type="button" id="markAllReadBtn">Mark all read</button>
+        </div>
+      </div>
       <div id="inboxList"><p class="empty">Loading inbox…</p></div>
+
+      <div class="card" id="broadcastCard" hidden>
+        <h2 class="sec" style="margin-top:0">Broadcast <span class="serif-i">history</span></h2>
+        <p class="muted" style="margin-top:-6px">Every message sent to “All members”, and how many people each one reached. Main Admin only.</p>
+        <div id="broadcastList"><p class="empty">Loading broadcasts…</p></div>
+      </div>
     </section>
 
     <!-- ================= ANNOUNCEMENTS ================= -->
@@ -248,6 +295,19 @@
           </select>
           <label for="annBody">Announcement</label>
           <textarea id="annBody" placeholder="Write the announcement…" required></textarea>
+          <div id="annTemplatesBox" hidden>
+            <label for="annTemplateSel">Template</label>
+            <select id="annTemplateSel"><option value="">Load a template…</option></select>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+              <button class="btn ghost small" type="button" id="annSaveTemplateBtn">Save as template</button>
+            </div>
+            <label for="annDraftSel">Draft</label>
+            <select id="annDraftSel"><option value="">Load a draft…</option></select>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+              <button class="btn ghost small" type="button" id="annSaveDraftBtn">Save draft</button>
+              <button class="btn ghost small" type="button" id="annDeleteDraftBtn">Delete draft</button>
+            </div>
+          </div>
           <button class="btn" type="submit" id="annPostBtn">Post announcement</button>
           <div class="msg" id="annMsg" role="alert"></div>
         </form>
@@ -259,7 +319,10 @@
     <!-- ================= INTERESTED APPLICANTS ================= -->
     <section class="tab" id="tab-applicants" role="tabpanel" hidden>
       <h1 class="page">Interested <em>applicants</em></h1>
-      <p class="lede">Everyone who filled in the Join form on the public website. Only the Main Admin, President and Vice Presidents can see this list.</p>
+      <p class="lede">Everyone who filled in the Join form on the public website. Only the Main Admin, President and Vice Presidents can see this list. Mark each one New, Contacted, Shortlisted or Reviewed — the Main Admin can also turn an applicant into a member account with one tap.</p>
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+        <button class="btn ghost small" type="button" id="appCsvBtn" hidden>Download applicants (CSV)</button>
+      </div>
       <div id="applicantList"><p class="empty">Loading applicants…</p></div>
     </section>
 
@@ -336,6 +399,27 @@
           <p class="muted" style="margin:14px 0 6px"><b>Lockdown mode</b> — when on, nobody except you can sign in.</p>
           <p style="margin:0 0 10px"><span id="lockdownStatus">Checking…</span></p>
           <button class="btn ghost small" type="button" id="lockdownBtn">Turn lockdown on</button>
+          <p class="muted" style="margin:14px 0 6px"><b>Applications</b> — the Join form on the public website.</p>
+          <p style="margin:0 0 10px"><span id="appsOpenStatus">Checking…</span></p>
+          <button class="btn ghost small" type="button" id="appsToggleBtn">Close applications</button>
+          <p class="muted" style="margin:14px 0 6px"><b>Bulk import</b> — create many accounts at once from a CSV file. Columns: Name, Login ID, Email, Mobile, Role (use the role codes: member, core_member, president, …). Each new account's temporary password is their mobile number.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <input id="bulkFile" type="file" accept=".csv,text/csv" style="width:auto;flex:1;min-width:200px;margin:0" />
+            <button class="btn small" type="button" id="bulkImportBtn">Import members</button>
+            <button class="btn ghost small" type="button" id="bulkSampleBtn">Sample CSV</button>
+          </div>
+          <p class="muted" id="bulkResult" style="margin:10px 0 0"></p>
+        </div>
+      </div>
+
+      <div class="card" id="bulkBar" hidden>
+        <span id="bulkCount">0 members selected</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+          <button class="btn small" type="button" id="bulkMsgBtn">Message selected</button>
+          <button class="btn ghost small" type="button" id="bulkSuspendBtn">Suspend selected</button>
+          <button class="btn ghost small" type="button" id="bulkUnsuspendBtn">Unsuspend selected</button>
+          <button class="btn ghost small" type="button" id="bulkRemoveBtn">Remove selected</button>
+          <button class="btn ghost small" type="button" id="bulkClearBtn">Clear selection</button>
         </div>
       </div>
 
@@ -346,6 +430,9 @@
     <section class="tab" id="tab-audit" role="tabpanel" hidden>
       <h1 class="page">Audit <em>log</em></h1>
       <p class="lede">Every account that was created, changed or removed — who did it, and when. Main Admin only. The log starts from the day it was switched on; it cannot show anything from before that.</p>
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+        <button class="btn ghost small" type="button" id="auditCsvBtn">Download audit log (CSV)</button>
+      </div>
       <div id="auditList"><p class="empty">Loading audit log…</p></div>
     </section>
 
@@ -372,6 +459,13 @@
       </div>
     </section>
   </main>
+</div>
+
+<div class="modal-overlay" id="profileModal" hidden>
+  <div class="modal" role="dialog" aria-label="Member profile">
+    <button class="btn ghost small close-x" type="button" id="profileClose">Close</button>
+    <div id="profileBody"></div>
+  </div>
 </div>
 
 <script src="./portal.js"></script>

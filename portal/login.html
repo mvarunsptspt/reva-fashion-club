@@ -323,7 +323,7 @@
         return;
       }
       // Step 3: door enforcement — the account's door must match the chosen door.
-      var me = await client.from("profiles").select("id, role, door, is_suspended").eq("id", signIn.data.user.id).single();
+      var me = await client.from("profiles").select("id, role, door, is_suspended, suspended_reason").eq("id", signIn.data.user.id).single();
       if (me.error || !me.data) {
         await client.auth.signOut();
         showMsg("Your account is not set up yet. Please contact the Admin.");
@@ -332,7 +332,7 @@
       // Suspended accounts cannot sign in at all.
       if (me.data.is_suspended) {
         await client.auth.signOut();
-        showMsg("Your account is suspended. Contact the Main Admin.");
+        showMsg("Your account is suspended." + (me.data.suspended_reason ? " Reason: " + me.data.suspended_reason + "." : "") + " Contact the Main Admin.");
         return;
       }
       if (me.data.door !== currentDoor) {

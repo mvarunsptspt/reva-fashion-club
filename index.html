@@ -1436,6 +1436,20 @@
   }
   var form = document.getElementById("appForm");
   var result = document.getElementById("appResult");
+  // If the Main Admin closed applications, the Join form stops here.
+  (async function(){
+    var db = rfcDb();
+    if (!db) return;
+    try {
+      var open = await db.rpc("get_applications_open");
+      if (!open.error && open.data === false) {
+        var btn0 = form.querySelector("button[type=submit]");
+        if (btn0) { btn0.disabled = true; btn0.textContent = "Applications closed"; }
+        result.className = "app-result show";
+        result.textContent = "Applications are closed right now — please check back soon.";
+      }
+    } catch (e) { /* fail open: a hiccup must not block real applicants */ }
+  })();
   form.addEventListener("submit", async function(e){
     e.preventDefault();
     var name = document.getElementById("fName").value.trim();
@@ -1455,6 +1469,12 @@
     if (!db){
       result.className = "app-result show";
       result.innerHTML = "Could not reach the club's server right now — please check your connection and try again.";
+      return;
+    }
+    var open = await db.rpc("get_applications_open");
+    if (!open.error && open.data === false) {
+      result.className = "app-result show";
+      result.innerHTML = "Applications are closed right now — please check back soon.";
       return;
     }
     btn.disabled = true;
